@@ -1,3 +1,81 @@
+import { calculateScore } from './game.js';
+
+// Get DOM elements
+const calculateBtn = document.getElementById('calculate-score-btn');
+const scoreboardBody = document.getElementById('scoreboard-body');
+const playerRows = document.querySelectorAll('.player-row');
+
+// Store total scores for each player
+const totalScores = [0, 0, 0, 0];
+
+/**
+ * Get bid and tricks input values for a specific player row
+ * @param {HTMLElement} row - The player row element
+ * @returns {Object} Object containing bid and tricks values
+ */
+function getPlayerInputs(row) {
+  const bidInput = row.querySelector('.bid-input');
+  const tricksInput = row.querySelector('.tricks-input');
+  return {
+    bid: parseInt(bidInput.value) || 0,
+    tricks: parseInt(tricksInput.value) || 0
+  };
+}
+
+/**
+ * Update the DOM with calculated scores
+ * @param {number} playerIndex - Index of the player (0-3)
+ * @param {number} roundScore - The calculated round score
+ */
+function updateScoreDisplay(playerIndex, roundScore) {
+  const row = playerRows[playerIndex];
+  const roundScoreCell = row.querySelector('.round-score');
+  const totalScoreCell = row.querySelector('.total-score');
+  
+  // Update total score
+  totalScores[playerIndex] += roundScore;
+  
+  // Update DOM
+  roundScoreCell.textContent = roundScore;
+  totalScoreCell.textContent = totalScores[playerIndex];
+}
+
+/**
+ * Calculate and display scores for all players
+ */
+function handleCalculateScore() {
+  playerRows.forEach((row, index) => {
+    const { bid, tricks } = getPlayerInputs(row);
+    const roundScore = calculateScore(bid, tricks);
+    updateScoreDisplay(index, roundScore);
+  });
+}
+
+/**
+ * Handle input change events for real-time validation
+ */
+function handleInputChange(event) {
+  const input = event.target;
+  const row = input.closest('.player-row');
+  
+  if (input.classList.contains('bid-input') || input.classList.contains('tricks-input')) {
+    // Validate input is within acceptable range
+    const value = parseInt(input.value) || 0;
+    if (value < 0) input.value = 0;
+    if (value > 13) input.value = 13;
+  }
+}
+
+// Event listeners
+calculateBtn.addEventListener('click', handleCalculateScore);
+scoreboardBody.addEventListener('change', handleInputChange);
+
+// Optional: Allow Enter key to calculate score
+document.addEventListener('keypress', (event) => {
+  if (event.key === 'Enter') {
+    handleCalculateScore();
+  }
+});
 import { calculateScore } from './scoring.js';
 
 // Game state
