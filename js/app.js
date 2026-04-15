@@ -1,3 +1,76 @@
+import { calculateScore } from './game.js';
+
+// DOM Elements
+const calculateBtn = document.getElementById('calculate-score-btn');
+const scoreboardBody = document.getElementById('scoreboard-body');
+
+// Initialize event listeners
+function initializeEventListeners() {
+    calculateBtn.addEventListener('click', handleCalculateScore);
+}
+
+// Handle calculate score button click
+function handleCalculateScore() {
+    const playerRows = scoreboardBody.querySelectorAll('.player-row');
+    
+    playerRows.forEach((row, index) => {
+        const bidInput = row.querySelector('.bid-input');
+        const tricksInput = row.querySelector('.tricks-input');
+        const roundScoreCell = row.querySelector('.round-score');
+        
+        const bid = parseInt(bidInput.value) || 0;
+        const tricks = parseInt(tricksInput.value) || 0;
+        
+        // Calculate score using game logic
+        const roundScore = calculateScore(bid, tricks);
+        
+        // Update DOM with calculated score
+        roundScoreCell.textContent = roundScore;
+        
+        // Update total score (accumulate from all rounds)
+        updateTotalScore(row, roundScore);
+    });
+}
+
+// Update total score by accumulating round scores
+function updateTotalScore(playerRow, roundScore) {
+    const totalScoreCell = playerRow.querySelector('.total-score');
+    const currentTotal = parseInt(totalScoreCell.textContent) || 0;
+    const newTotal = currentTotal + roundScore;
+    totalScoreCell.textContent = newTotal;
+}
+
+// Add real-time input validation
+function setupInputValidation() {
+    const bidInputs = scoreboardBody.querySelectorAll('.bid-input');
+    const tricksInputs = scoreboardBody.querySelectorAll('.tricks-input');
+    
+    [...bidInputs, ...tricksInputs].forEach(input => {
+        input.addEventListener('change', validateInput);
+    });
+}
+
+// Validate input values
+function validateInput(event) {
+    const input = event.target;
+    const value = parseInt(input.value) || 0;
+    const min = parseInt(input.min);
+    const max = parseInt(input.max);
+    
+    if (value < min) input.value = min;
+    if (value > max) input.value = max;
+}
+
+// Initialize app on DOM ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeEventListeners();
+        setupInputValidation();
+    });
+} else {
+    initializeEventListeners();
+    setupInputValidation();
+}
 /**
  * Skull King - Main Application Controller
  * Connects UI to scoring logic and handles user interactions
