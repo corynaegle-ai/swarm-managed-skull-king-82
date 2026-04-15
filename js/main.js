@@ -21,5 +21,9 @@ function initializeApp() {
     gameController.startGame();
   } catch (error) {
     console.error('Failed to initialize game:', error);
+    const phaseContainer = document.getElementById('phase-container');
+    if (phaseContainer) {
+      phaseContainer.innerHTML = '<div class="error">Failed to initialize game. Please refresh the page.</div>';
+    }
   }
 }

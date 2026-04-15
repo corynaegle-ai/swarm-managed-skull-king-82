@@ -1,7 +1,6 @@
 /**
  * Game Controller
- * Orchestrates game flow by combining gameState and phaseRenderer
- * Handles phase transitions and user interactions
+ * Orchestrates game flow by combining gameState and phaseRenderer modules
  */
 
 import { GameState } from './gameState.js';
@@ -14,146 +13,347 @@ export class GameController {
     this.phaseContainer = document.getElementById('phase-container');
     
     if (!this.phaseContainer) {
-      throw new Error('phase-container element not found in DOM');
+      throw new Error('Phase container element not found');
     }
-
-    // Bind event handlers
-    this.handleAddPlayer = this.handleAddPlayer.bind(this);
-    this.handleSubmitBid = this.handleSubmitBid.bind(this);
-    this.handleCalculateScore = this.handleCalculateScore.bind(this);
-    this.handleAdvanceRound = this.handleAdvanceRound.bind(this);
+    
+    // Track active timeout to prevent double-advances
+    this.advanceRoundTimeout = null;
   }
 
   /**
-   * Start the game - initialize state and render setup phase
+   * Starts the game - initializes state and renders setup phase
    */
   startGame() {
-    this.gameState.initialize();
-    this.setupEventListeners();
-    this.updateDisplay();
-  }
-
-  /**
-   * Setup event delegation for dynamic elements
-   */
-  setupEventListeners() {
-    this.phaseContainer.addEventListener('click', (e) => {
-      // Add player button
-      if (e.target.id === 'add-player-btn') {
-        const nameInput = this.phaseContainer.querySelector('#player-name-input');
-        if (nameInput && nameInput.value.trim()) {
-          this.handleAddPlayer(nameInput.value.trim());
-          nameInput.value = '';
-        }
-      }
-
-      // Submit bid button
-      if (e.target.id === 'submit-bid-btn') {
-        const bidInput = this.phaseContainer.querySelector('#bid-input');
-        if (bidInput && bidInput.value !== '') {
-          this.handleSubmitBid(parseInt(bidInput.value, 10));
-        }
-      }
-
-      // Calculate score button
-      if (e.target.id === 'calculate-score-btn') {
-        const trickInputs = this.phaseContainer.querySelectorAll('.trick-input');
-        const tricks = {};
-        trickInputs.forEach((input) => {
-          const playerId = input.dataset.playerId;
-          tricks[playerId] = parseInt(input.value, 10) || 0;
-        });
-        this.handleCalculateScore(tricks);
-      }
-
-      // Advance round button
-      if (e.target.id === 'advance-round-btn') {
-        this.handleAdvanceRound();
-      }
-    });
-  }
-
-  /**
-   * Handle adding a new player
-   */
-  handleAddPlayer(playerName) {
-    this.gameState.addPlayer(playerName);
-    this.updateDisplay();
-
-    // Transition to bidding when 2+ players are added
-    if (this.gameState.getPlayerCount() >= 2 && this.gameState.getCurrentPhase() === 'setup') {
-      this.handlePhaseTransition('bidding');
+    try {
+      this.gameState.initialize();
+      this.updateDisplay();
+    } catch (error) {
+      console.error('Failed to start game:', error);
+      this.phaseContainer.innerHTML = '<div class="error">Failed to initialize game. Please refresh.</div>';
     }
   }
 
   /**
-   * Handle submitting a bid
+   * Handles adding a new player to the setup phase
    */
-  handleSubmitBid(bidAmount) {
-    const currentPlayerIndex = this.gameState.getCurrentPlayerIndexForBidding();
-    if (currentPlayerIndex === null) {
-      console.error('No valid player for bidding');
+  handleAddPlayer(event) {
+    const nameInput = this.phaseContainer.querySelector('#player-name-input');
+    
+    if (!nameInput) {
+      console.error('Player name input not found');
       return;
     }
-
-    this.gameState.recordBid(currentPlayerIndex, bidAmount);
-    this.updateDisplay();
-
-    // Check if all bids are collected
-    if (this.gameState.allBidsCollected()) {
-      // Automatically transition to scoring
-      this.handlePhaseTransition('scoring');
+    
+    const playerName = nameInput.value.trim();
+    
+    // Input validation
+    if (!playerName) {
+      alert('Please enter a player name');
+      return;
+    }
+    
+    if (playerName.length > 50) {
+      alert('Player name is too long (max 50 characters)');
+      return;
+    }
+    
+    try {
+      this.gameState.addPlayer(playerName);
+      nameInput.value = '';
+      this.updateDisplay();
+    } catch (error) {
+      console.error('Error adding player:', error);
+      alert('Could not add player: ' + error.message);
     }
   }
 
   /**
-   * Handle calculating score after tricks are submitted
+   * Handles start game button click - transitions from setup to bidding
+   * Only available when 2+ players are present
    */
-  handleCalculateScore(tricks) {
-    this.gameState.calculateRoundScore(tricks);
-    this.updateDisplay();
+  handleStartGameClick(event) {
+    const playerCount = this.gameState.getPlayerCount();
+    
+    if (playerCount < 2) {
+      alert('Need at least 2 players to start');
+      return;
+    }
+    
+    try {
+      this.gameState.setCurrentPhase('bidding');
+      this.updateDisplay();
+    } catch (error) {
+      console.error('Error starting game:', error);
+      alert('Could not start game: ' + error.message);
+    }
+  }
 
-    // Automatically advance after a short delay to show results
-    setTimeout(() => {
+  /**
+   * Handles bid submission - collects all player bids
+   * When all bids are collected, transitions to scoring
+   */
+  handleSubmitBids(event) {
+    try {
+      const bidInputs = this.phaseContainer.querySelectorAll('[data-bid-player]');
+      const playerCount = this.gameState.getPlayerCount();
+      const bids = {};
+      let collectedCount = 0;
+      
+      // Collect bids from all input fields
+      bidInputs.forEach(input => {
+        const playerIndex = parseInt(input.dataset.bidPlayer, 10);
+        const bidValue = input.value.trim();
+        
+        if (bidValue === '') {
+          throw new Error(`Player ${playerIndex + 1} has not entered a bid`);
+        }
+        
+        const bid = parseInt(bidValue, 10);
+        
+        // Validate bid range (0-13 for Skull King)
+        if (isNaN(bid) || bid < 0 || bid > 13) {
+          throw new Error(`Player ${playerIndex + 1} bid must be between 0 and 13`);
+        }
+        
+        bids[playerIndex] = bid;
+        collectedCount++;
+      });
+      
+      // Verify all players have bid
+      if (collectedCount !== playerCount) {
+        throw new Error('Not all players have submitted bids');
+      }
+      
+      // Record bids in game state
+      this.gameState.recordBids(bids);
+      
+      // Transition to scoring phase
+      this.gameState.setCurrentPhase('scoring');
+      this.updateDisplay();
+    } catch (error) {
+      console.error('Error submitting bids:', error);
+      alert('Error submitting bids: ' + error.message);
+    }
+  }
+
+  /**
+   * Handles trick recording in scoring phase
+   * Calculates round score and auto-advances after brief delay
+   */
+  handleCalculateScore(event) {
+    try {
+      // Collect tricks from all inputs
+      const trickInputs = this.phaseContainer.querySelectorAll('[data-trick-player]');
+      const playerCount = this.gameState.getPlayerCount();
+      const tricks = {};
+      let collectedCount = 0;
+      
+      trickInputs.forEach(input => {
+        const playerIndex = parseInt(input.dataset.trickPlayer, 10);
+        const trickValue = input.value.trim();
+        
+        if (trickValue === '') {
+          throw new Error(`Player ${playerIndex + 1} has not entered tricks won`);
+        }
+        
+        const tricks_won = parseInt(trickValue, 10);
+        
+        // Validate tricks range (0 to current round number)
+        const currentRound = this.gameState.getCurrentRound();
+        if (isNaN(tricks_won) || tricks_won < 0 || tricks_won > currentRound) {
+          throw new Error(`Player ${playerIndex + 1} tricks must be between 0 and ${currentRound}`);
+        }
+        
+        tricks[playerIndex] = tricks_won;
+        collectedCount++;
+      });
+      
+      // Verify all players entered tricks
+      if (collectedCount !== playerCount) {
+        throw new Error('Not all players have entered tricks won');
+      }
+      
+      // Calculate and record round score
+      this.gameState.calculateRoundScore(tricks);
+      
+      // Check if game is complete (after 10 rounds)
+      const currentRound = this.gameState.getCurrentRound();
+      if (currentRound >= 10) {
+        // Show completion screen
+        this.gameState.setCurrentPhase('completion');
+        this.updateDisplay();
+      } else {
+        // Auto-advance to next round after brief delay
+        this.scheduleRoundAdvance();
+      }
+    } catch (error) {
+      console.error('Error calculating score:', error);
+      alert('Error calculating score: ' + error.message);
+    }
+  }
+
+  /**
+   * Schedules the round advance with timeout management
+   * Prevents double-advance by clearing any existing timeout
+   */
+  scheduleRoundAdvance() {
+    // Clear any existing timeout
+    if (this.advanceRoundTimeout !== null) {
+      clearTimeout(this.advanceRoundTimeout);
+    }
+    
+    // Schedule new advance after 2 seconds
+    this.advanceRoundTimeout = setTimeout(() => {
+      this.advanceRoundTimeout = null;
       this.handleAdvanceRound();
     }, 2000);
   }
 
   /**
-   * Handle advancing to next round or game completion
+   * Handles advancing to the next round
+   * Only executes once per round to prevent double-advance
    */
-  handleAdvanceRound() {
-    const currentRound = this.gameState.getCurrentRound();
-
-    if (currentRound >= 10) {
-      // Game is complete after round 10
-      this.handlePhaseTransition('complete');
-    } else {
-      // Move to next round (back to setup/bidding phase)
+  handleAdvanceRound(event) {
+    try {
+      // Move to next round
       this.gameState.nextRound();
-      this.handlePhaseTransition('bidding');
+      
+      // Transition back to bidding phase for new round
+      this.gameState.setCurrentPhase('bidding');
+      this.updateDisplay();
+    } catch (error) {
+      console.error('Error advancing round:', error);
+      alert('Error advancing round: ' + error.message);
     }
   }
 
   /**
-   * Handle phase transitions
+   * Handles restart game from completion screen
    */
-  handlePhaseTransition(newPhase) {
-    this.gameState.setCurrentPhase(newPhase);
-    this.updateDisplay();
+  handleRestartGame(event) {
+    // Clear any pending timeout
+    if (this.advanceRoundTimeout !== null) {
+      clearTimeout(this.advanceRoundTimeout);
+      this.advanceRoundTimeout = null;
+    }
+    
+    try {
+      this.gameState.initialize();
+      this.updateDisplay();
+    } catch (error) {
+      console.error('Error restarting game:', error);
+      alert('Could not restart game: ' + error.message);
+    }
   }
 
   /**
-   * Update the display based on current game state
+   * Updates the display based on current game state
+   * Renders the appropriate phase and sets up event listeners
    */
   updateDisplay() {
-    const currentPhase = this.gameState.getCurrentPhase();
-    const gameState = this.gameState.getState();
+    try {
+      const currentPhase = this.gameState.getCurrentPhase();
+      const gameStateSnapshot = this.gameState.getState();
+      
+      // Render phase UI
+      const html = this.phaseRenderer.renderPhase(currentPhase, gameStateSnapshot);
+      
+      // Replace phase container content
+      this.phaseContainer.innerHTML = html;
+      
+      // Set up event listeners based on current phase
+      this.setupPhaseListeners(currentPhase);
+    } catch (error) {
+      console.error('Error updating display:', error);
+      this.phaseContainer.innerHTML = '<div class="error">Error rendering phase. Check console.</div>';
+    }
+  }
 
-    // Render the appropriate phase UI
-    const htmlContent = this.phaseRenderer.renderPhase(currentPhase, gameState);
+  /**
+   * Sets up event listeners for the current phase
+   * Uses event delegation on the phase container
+   */
+  setupPhaseListeners(currentPhase) {
+    // Remove old listeners by replacing container (clean slate)
+    const container = this.phaseContainer;
+    
+    switch (currentPhase) {
+      case 'setup':
+        // Setup phase: add player and start game
+        const addPlayerBtn = container.querySelector('#add-player-btn');
+        const playerNameInput = container.querySelector('#player-name-input');
+        const startGameBtn = container.querySelector('#start-game-btn');
+        
+        if (addPlayerBtn) {
+          addPlayerBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.handleAddPlayer(e);
+          });
+        }
+        
+        if (playerNameInput) {
+          playerNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              this.handleAddPlayer(e);
+            }
+          });
+        }
+        
+        if (startGameBtn) {
+          startGameBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.handleStartGameClick(e);
+          });
+        }
+        break;
 
-    // Update the phase container with the rendered HTML
-    this.phaseContainer.innerHTML = htmlContent;
+      case 'bidding':
+        // Bidding phase: submit bids
+        const submitBidsBtn = container.querySelector('#submit-bids-btn');
+        
+        if (submitBidsBtn) {
+          submitBidsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.handleSubmitBids(e);
+          });
+        }
+        break;
+
+      case 'scoring':
+        // Scoring phase: calculate score and advance
+        const calculateScoreBtn = container.querySelector('#calculate-score-btn');
+        const advanceRoundBtn = container.querySelector('#advance-round-btn');
+        
+        if (calculateScoreBtn) {
+          calculateScoreBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.handleCalculateScore(e);
+          });
+        }
+        
+        if (advanceRoundBtn) {
+          advanceRoundBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            // Only allow manual advance if no auto-advance is pending
+            if (this.advanceRoundTimeout === null) {
+              this.handleAdvanceRound(e);
+            }
+          });
+        }
+        break;
+
+      case 'completion':
+        // Completion phase: restart game
+        const restartBtn = container.querySelector('#restart-game-btn');
+        
+        if (restartBtn) {
+          restartBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.handleRestartGame(e);
+          });
+        }
+        break;
+    }
   }
 }

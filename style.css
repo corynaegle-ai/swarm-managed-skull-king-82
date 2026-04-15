@@ -1,332 +1,479 @@
+/* Skull King Game Styles */
+
 :root {
-    --primary-color: #2c3e50;
-    --secondary-color: #3498db;
-    --accent-color: #e74c3c;
-    --border-color: #bdc3c7;
-    --text-color: #2c3e50;
-    --light-bg: #ecf0f1;
-    --white: #ffffff;
-    --spacing-xs: 4px;
-    --spacing-sm: 8px;
-    --spacing-md: 16px;
-    --spacing-lg: 24px;
-    --spacing-xl: 32px;
-    --border-radius: 4px;
-    --transition: all 0.3s ease;
+  --primary-color: #2c3e50;
+  --secondary-color: #3498db;
+  --success-color: #27ae60;
+  --danger-color: #e74c3c;
+  --warning-color: #f39c12;
+  --light-bg: #ecf0f1;
+  --border-color: #bdc3c7;
+  --text-color: #2c3e50;
+  --border-radius: 8px;
+  --transition: all 0.3s ease;
 }
 
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-html, body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    color: var(--text-color);
-    background-color: var(--light-bg);
-    line-height: 1.6;
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-color);
 }
 
 .app-container {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    background-color: var(--light-bg);
+  width: 100%;
+  max-width: 1000px;
+  background: white;
+  border-radius: var(--border-radius);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 .app-header {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-    color: var(--white);
-    padding: var(--spacing-lg);
-    text-align: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, var(--primary-color) 0%, #34495e 100%);
+  color: white;
+  padding: 2rem;
+  text-align: center;
 }
 
 .app-header h1 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    letter-spacing: 2px;
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .app-main {
-    flex: 1;
-    padding: var(--spacing-lg);
-    max-width: 1200px;
-    margin: 0 auto;
-    width: 100%;
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
 }
 
 .app-footer {
-    background-color: var(--primary-color);
-    color: var(--white);
-    padding: var(--spacing-md);
-    text-align: center;
-    border-top: 1px solid var(--border-color);
-    margin-top: auto;
+  background: var(--light-bg);
+  border-top: 1px solid var(--border-color);
+  padding: 1rem;
+  text-align: center;
+  color: #7f8c8d;
+  font-size: 0.9rem;
 }
 
-.app-footer p {
-    margin: 0;
+.phase-container {
+  min-height: 400px;
 }
 
-/* Scoreboard Section */
-.scoreboard-section {
-    background-color: var(--white);
-    border-radius: var(--border-radius);
-    padding: var(--spacing-lg);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+/* Phase Styles */
+.phase {
+  animation: fadeIn 0.3s ease-in;
 }
 
-.scoreboard-section h2 {
-    font-size: 1.75rem;
-    margin-bottom: var(--spacing-lg);
-    color: var(--primary-color);
-    border-bottom: 3px solid var(--secondary-color);
-    padding-bottom: var(--spacing-md);
-}
-
-/* Scoreboard Wrapper */
-.scoreboard-wrapper {
-    overflow-x: auto;
-    margin-bottom: var(--spacing-lg);
-    border-radius: var(--border-radius);
-    border: 1px solid var(--border-color);
-}
-
-/* Scoreboard Table */
-.scoreboard-table {
-    width: 100%;
-    border-collapse: collapse;
-    background-color: var(--white);
-}
-
-.scoreboard-table thead {
-    background-color: var(--primary-color);
-    color: var(--white);
-}
-
-.scoreboard-table th {
-    padding: var(--spacing-md);
-    text-align: left;
-    font-weight: 600;
-    font-size: 0.95rem;
-    letter-spacing: 0.5px;
-    border-right: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.scoreboard-table th:last-child {
-    border-right: none;
-}
-
-.scoreboard-table tbody tr {
-    border-bottom: 1px solid var(--border-color);
-    transition: var(--transition);
-}
-
-.scoreboard-table tbody tr:hover {
-    background-color: rgba(52, 152, 219, 0.05);
-}
-
-.scoreboard-table tbody tr:last-child {
-    border-bottom: none;
-}
-
-.scoreboard-table td {
-    padding: var(--spacing-md);
-    border-right: 1px solid var(--border-color);
-}
-
-.scoreboard-table td:last-child {
-    border-right: none;
-}
-
-/* Column Styling */
-.player-name-col,
-.player-name {
-    font-weight: 600;
-    color: var(--primary-color);
-    min-width: 120px;
-}
-
-.bid-col,
-.tricks-col,
-.round-score-col,
-.total-score-col {
-    text-align: center;
-    min-width: 100px;
-}
-
-.round-score,
-.total-score {
-    text-align: center;
-    font-weight: 600;
-    color: var(--secondary-color);
-}
-
-.total-score {
-    font-size: 1.1rem;
-    color: var(--accent-color);
-}
-
-/* Input Fields */
-.bid-cell,
-.tricks-cell {
-    text-align: center;
-}
-
-.bid-input,
-.tricks-input {
-    width: 70px;
-    padding: var(--spacing-sm) var(--spacing-xs);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    font-size: 1rem;
-    text-align: center;
-    background-color: var(--white);
-    color: var(--text-color);
-    transition: var(--transition);
-}
-
-.bid-input:focus,
-.tricks-input:focus {
-    outline: none;
-    border-color: var(--secondary-color);
-    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-    background-color: rgba(52, 152, 219, 0.02);
-}
-
-.bid-input::placeholder,
-.tricks-input::placeholder {
-    color: #95a5a6;
-}
-
-/* Scoreboard Controls */
-.scoreboard-controls {
-    display: flex;
-    justify-content: center;
-    gap: var(--spacing-md);
-}
-
-.calculate-btn {
-    background: linear-gradient(135deg, var(--secondary-color) 0%, #2980b9 100%);
-    color: var(--white);
-    border: none;
-    padding: var(--spacing-md) var(--spacing-lg);
-    font-size: 1rem;
-    font-weight: 600;
-    border-radius: var(--border-radius);
-    cursor: pointer;
-    transition: var(--transition);
-    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
-    letter-spacing: 0.5px;
-}
-
-.calculate-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
-    background: linear-gradient(135deg, #2980b9 0%, #1f618d 100%);
-}
-
-.calculate-btn:active {
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
     transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
+  }
 }
 
-.calculate-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
+.phase h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+}
+
+.phase h3 {
+  font-size: 1.3rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.8rem;
+  color: var(--primary-color);
+}
+
+.phase p {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+  color: #555;
+}
+
+/* Setup Phase */
+.setup-phase {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.setup-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.player-input-section {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.player-input-section input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  transition: var(--transition);
+}
+
+.player-input-section input:focus {
+  outline: none;
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+}
+
+.players-list {
+  background: var(--light-bg);
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+}
+
+.players-list ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.players-list li {
+  padding: 0.5rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+  color: #555;
+}
+
+.players-list li:before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--success-color);
+  font-weight: bold;
+}
+
+/* Button Styles */
+button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+#add-player-btn {
+  background: var(--secondary-color);
+  color: white;
+  flex-shrink: 0;
+}
+
+#add-player-btn:hover {
+  background: #2980b9;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+}
+
+#add-player-btn:active {
+  transform: translateY(0);
+}
+
+#start-game-btn,
+#submit-bids-btn,
+#calculate-score-btn,
+.submit-btn {
+  background: var(--success-color);
+  color: white;
+  margin-top: 1.5rem;
+  width: 100%;
+}
+
+#start-game-btn:hover,
+#submit-bids-btn:hover,
+#calculate-score-btn:hover,
+.submit-btn:hover {
+  background: #229954;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+}
+
+#start-game-btn:active,
+#submit-bids-btn:active,
+#calculate-score-btn:active,
+.submit-btn:active {
+  transform: translateY(0);
+}
+
+#start-game-btn:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+#start-game-btn:disabled:hover {
+  background: #bdc3c7;
+  transform: none;
+}
+
+#advance-round-btn,
+#restart-game-btn,
+.restart-btn {
+  background: var(--secondary-color);
+  color: white;
+  margin-top: 1rem;
+}
+
+#advance-round-btn:hover,
+#restart-game-btn:hover,
+.restart-btn:hover {
+  background: #2980b9;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+}
+
+/* Bidding Phase */
+.bidding-phase {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.bids-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.player-bid-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.player-bid-input label {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.player-bid-input input,
+.player-tricks-input input {
+  padding: 0.75rem;
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  transition: var(--transition);
+}
+
+.player-bid-input input:focus,
+.player-tricks-input input:focus {
+  outline: none;
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+}
+
+/* Scoring Phase */
+.scoring-phase {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.tricks-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.player-tricks-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.player-tricks-input label {
+  font-weight: 600;
+  color: var(--primary-color);
+  font-size: 0.9rem;
+}
+
+.round-results {
+  background: var(--light-bg);
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+  margin-bottom: 2rem;
+}
+
+.round-results h3 {
+  margin-top: 0;
+}
+
+/* Table Styles */
+.scoring-table,
+.scores-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.scoring-table thead,
+.scores-table thead {
+  background: var(--primary-color);
+  color: white;
+}
+
+.scoring-table th,
+.scores-table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+}
+
+.scoring-table td,
+.scores-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.scoring-table tbody tr:hover,
+.scores-table tbody tr:hover {
+  background: var(--light-bg);
+}
+
+.scoring-table .positive {
+  color: var(--success-color);
+  font-weight: 600;
+}
+
+.scoring-table .negative {
+  color: var(--danger-color);
+  font-weight: 600;
+}
+
+/* Completion Phase */
+.completion-phase {
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.winner,
+.tie {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  color: white;
+  padding: 2rem;
+  border-radius: var(--border-radius);
+  margin-bottom: 2rem;
+}
+
+.winner h3,
+.tie h3 {
+  color: white;
+  margin-top: 0;
+}
+
+.final-scores {
+  background: var(--light-bg);
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+  margin-bottom: 2rem;
+}
+
+.final-scores h3 {
+  margin-top: 0;
+}
+
+#restart-game-btn,
+.restart-btn {
+  width: 100%;
+}
+
+/* Error Styles */
+.error {
+  background: #fadbd8;
+  border: 2px solid var(--danger-color);
+  color: var(--danger-color);
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+  text-align: center;
+  font-weight: 600;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    .app-header h1 {
-        font-size: 1.75rem;
-    }
-    
-    .app-main {
-        padding: var(--spacing-md);
-    }
-    
-    .scoreboard-section {
-        padding: var(--spacing-md);
-    }
-    
-    .scoreboard-section h2 {
-        font-size: 1.35rem;
-        margin-bottom: var(--spacing-md);
-    }
-    
-    .scoreboard-table th,
-    .scoreboard-table td {
-        padding: var(--spacing-sm);
-        font-size: 0.9rem;
-    }
-    
-    .player-name-col,
-    .player-name {
-        min-width: 100px;
-    }
-    
-    .bid-col,
-    .tricks-col,
-    .round-score-col,
-    .total-score-col {
-        min-width: 80px;
-    }
-    
-    .bid-input,
-    .tricks-input {
-        width: 60px;
-        padding: var(--spacing-xs);
-        font-size: 0.9rem;
-    }
-    
-    .calculate-btn {
-        padding: var(--spacing-md) var(--spacing-md);
-        font-size: 0.95rem;
-    }
+  .app-container {
+    min-height: 100vh;
+    border-radius: 0;
+  }
+
+  .app-header h1 {
+    font-size: 1.8rem;
+  }
+
+  .app-main {
+    padding: 1rem;
+  }
+
+  .phase h2 {
+    font-size: 1.5rem;
+  }
+
+  .bids-container,
+  .tricks-container {
+    grid-template-columns: 1fr;
+  }
+
+  .player-input-section {
+    flex-direction: column;
+  }
+
+  .player-input-section input,
+  #add-player-btn {
+    width: 100%;
+  }
+
+  table {
+    font-size: 0.9rem;
+  }
+
+  table th,
+  table td {
+    padding: 0.5rem;
+  }
 }
 
 @media (max-width: 480px) {
-    .app-header h1 {
-        font-size: 1.5rem;
-        letter-spacing: 1px;
-    }
-    
-    .scoreboard-wrapper {
-        overflow-x: auto;
-    }
-    
-    .scoreboard-table th,
-    .scoreboard-table td {
-        padding: var(--spacing-xs) 4px;
-        font-size: 0.8rem;
-    }
-    
-    .player-name-col,
-    .player-name {
-        min-width: 80px;
-    }
-    
-    .bid-col,
-    .tricks-col,
-    .round-score-col,
-    .total-score-col {
-        min-width: 70px;
-    }
-    
-    .bid-input,
-    .tricks-input {
-        width: 50px;
-        padding: 4px 2px;
-        font-size: 0.85rem;
-    }
-    
-    .calculate-btn {
-        padding: var(--spacing-sm) var(--spacing-md);
-        font-size: 0.9rem;
-        width: 100%;
-    }
+  .app-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .phase h2 {
+    font-size: 1.3rem;
+  }
+
+  .phase h3 {
+    font-size: 1.1rem;
+  }
+
+  button {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+  }
 }
