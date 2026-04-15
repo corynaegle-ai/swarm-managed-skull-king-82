@@ -1,0 +1,236 @@
+/* Bid Collection Styles */
+
+#bid-collection-container {
+  width: 100%;
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+/* Round Information Section */
+.bid-round-info {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 15px;
+  background-color: #e8f4f8;
+  border-radius: 6px;
+  border-left: 4px solid #0066cc;
+}
+
+.bid-round-info h2 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 1.5em;
+}
+
+.round-number {
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #0066cc;
+  margin: 5px 0;
+}
+
+.max-bid-info {
+  font-size: 1em;
+  color: #555;
+  margin: 5px 0;
+}
+
+#round-display,
+#max-bid-display {
+  color: #ff6b6b;
+  font-weight: bold;
+}
+
+/* Bid Form */
+.bid-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Bid Inputs Container */
+.bid-inputs-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 15px;
+}
+
+@media (min-width: 600px) {
+  .bid-inputs-container {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Individual Player Bid Group */
+.player-bid-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.player-bid-group label {
+  font-weight: bold;
+  color: #333;
+  font-size: 0.95em;
+}
+
+/* Bid Input Field */
+.bid-input {
+  padding: 10px;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  font-size: 1em;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.bid-input:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 5px rgba(0, 102, 204, 0.3);
+}
+
+.bid-input:hover {
+  border-color: #0066cc;
+}
+
+/* Error State */
+.bid-input-error {
+  border-color: #ff6b6b;
+  background-color: #fff5f5;
+}
+
+.bid-input-error:focus {
+  box-shadow: 0 0 5px rgba(255, 107, 107, 0.3);
+}
+
+/* Error Message */
+.bid-error-message {
+  color: #ff6b6b;
+  font-size: 0.85em;
+  font-weight: bold;
+  margin-top: 2px;
+  display: none;
+}
+
+/* Submit Button */
+.bid-submit-btn {
+  padding: 12px 24px;
+  background-color: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+  margin-top: 10px;
+}
+
+.bid-submit-btn:hover {
+  background-color: #0052a3;
+}
+
+.bid-submit-btn:active {
+  transform: scale(0.98);
+}
+
+.bid-submit-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  transform: scale(1);
+}
+
+/* Bid Summary Section */
+.bid-summary {
+  padding: 20px;
+  background-color: #e8f8e8;
+  border-radius: 6px;
+  border-left: 4px solid #28a745;
+  margin-top: 20px;
+}
+
+.bid-summary h3 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 1.3em;
+}
+
+/* Bids List */
+.bids-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 15px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bids-list li {
+  padding: 10px;
+  background-color: #fff;
+  border-radius: 4px;
+  border-left: 3px solid #28a745;
+  font-size: 1em;
+  color: #333;
+  display: flex;
+  justify-content: space-between;
+}
+
+.bids-list li::before {
+  content: "✓ ";
+  color: #28a745;
+  font-weight: bold;
+  margin-right: 5px;
+}
+
+/* Edit Button */
+.bid-edit-btn {
+  padding: 10px 20px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.95em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+.bid-edit-btn:hover {
+  background-color: #5a6268;
+}
+
+.bid-edit-btn:active {
+  transform: scale(0.98);
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  #bid-collection-container {
+    padding: 15px;
+    margin: 10px auto;
+  }
+
+  .bid-inputs-container {
+    grid-template-columns: 1fr;
+  }
+
+  .bid-round-info h2 {
+    font-size: 1.3em;
+  }
+
+  .bid-input {
+    padding: 8px;
+    font-size: 16px; /* Prevents zoom on mobile */
+  }
+
+  .bid-submit-btn,
+  .bid-edit-btn {
+    padding: 10px 16px;
+    font-size: 0.95em;
+  }
+}
