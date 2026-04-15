@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tricks & Bonus Entry - Skull King</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/tricksEntry.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Tricks & Bonus Entry</h1>
+            <div class="round-info">
+                <p>Round: <span id="roundNumber">-</span></p>
+            </div>
+        </header>
+
+        <main class="tricks-entry-container">
+            <form id="tricksEntryForm" class="tricks-entry-form">
+                <fieldset>
+                    <legend>Enter Tricks Taken and Bonus Points</legend>
+                    
+                    <div id="playersContainer" class="players-container">
+                        <!-- Player entries will be populated here by JavaScript -->
+                    </div>
+                </fieldset>
+
+                <div class="form-actions">
+                    <button type="button" id="backBtn" class="btn btn-secondary">Back to Game</button>
+                    <button type="submit" id="confirmBtn" class="btn btn-primary">Confirm Entries</button>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/tricksEntry.js"></script>
+</body>
+</html>
