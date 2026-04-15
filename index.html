@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Skull King - Vanilla JS App</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/players.css">
 </head>
 <body>
     <div id="app" class="app-container">
@@ -12,7 +13,40 @@
             <h1>Skull King</h1>
         </header>
         <main class="app-main">
-            <p class="welcome-message">Welcome to the app. Loading...</p>
+            <section class="player-management" data-section="player-management">
+                <h2>Player Setup</h2>
+                <form class="player-form" data-form="add-player">
+                    <div class="form-group">
+                        <label for="player-name-input">Player Name:</label>
+                        <input 
+                            type="text" 
+                            id="player-name-input" 
+                            data-input="player-name"
+                            placeholder="Enter player name"
+                            maxlength="50"
+                            required
+                        />
+                    </div>
+                    <button type="submit" class="btn btn-primary" data-button="add-player">Add Player</button>
+                </form>
+
+                <div class="error-message" data-element="error-message" style="display: none;"></div>
+
+                <div class="players-container">
+                    <h3>Players:</h3>
+                    <ul class="player-list" data-list="players">
+                    </ul>
+                </div>
+
+                <button 
+                    type="button" 
+                    class="btn btn-success btn-lg" 
+                    data-button="start-game"
+                    disabled
+                >
+                    Start Game
+                </button>
+            </section>
         </main>
         <footer class="app-footer">
             <p>&copy; 2024 Skull King Game</p>
