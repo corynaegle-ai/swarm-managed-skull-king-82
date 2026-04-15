@@ -1,7 +1,7 @@
 /* Main stylesheet for Skull King game */
 
 /* Import score display styles */
-@import url('scoreDisplay.css');
+@import url('./scoreDisplay.css');
 
 /* Root variables */
 :root {
