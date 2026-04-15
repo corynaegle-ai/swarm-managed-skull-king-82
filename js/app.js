@@ -1,392 +1,415 @@
-import { calculateScore } from './game.js';
-
-// Get DOM elements
-const calculateBtn = document.getElementById('calculate-score-btn');
-const scoreboardBody = document.getElementById('scoreboard-body');
-const playerRows = document.querySelectorAll('.player-row');
-
-// Store total scores for each player
-const totalScores = [0, 0, 0, 0];
-
-/**
- * Get bid and tricks input values for a specific player row
- * @param {HTMLElement} row - The player row element
- * @returns {Object} Object containing bid and tricks values
- */
-function getPlayerInputs(row) {
-  const bidInput = row.querySelector('.bid-input');
-  const tricksInput = row.querySelector('.tricks-input');
-  return {
-    bid: parseInt(bidInput.value) || 0,
-    tricks: parseInt(tricksInput.value) || 0
-  };
-}
-
-/**
- * Update the DOM with calculated scores
- * @param {number} playerIndex - Index of the player (0-3)
- * @param {number} roundScore - The calculated round score
- */
-function updateScoreDisplay(playerIndex, roundScore) {
-  const row = playerRows[playerIndex];
-  const roundScoreCell = row.querySelector('.round-score');
-  const totalScoreCell = row.querySelector('.total-score');
-  
-  // Update total score
-  totalScores[playerIndex] += roundScore;
-  
-  // Update DOM
-  roundScoreCell.textContent = roundScore;
-  totalScoreCell.textContent = totalScores[playerIndex];
-}
-
-/**
- * Calculate and display scores for all players
- */
-function handleCalculateScore() {
-  playerRows.forEach((row, index) => {
-    const { bid, tricks } = getPlayerInputs(row);
-    const roundScore = calculateScore(bid, tricks);
-    updateScoreDisplay(index, roundScore);
-  });
-}
-
-/**
- * Handle input change events for real-time validation
- */
-function handleInputChange(event) {
-  const input = event.target;
-  const row = input.closest('.player-row');
-  
-  if (input.classList.contains('bid-input') || input.classList.contains('tricks-input')) {
-    // Validate input is within acceptable range
-    const value = parseInt(input.value) || 0;
-    if (value < 0) input.value = 0;
-    if (value > 13) input.value = 13;
-  }
-}
-
-// Event listeners
-calculateBtn.addEventListener('click', handleCalculateScore);
-scoreboardBody.addEventListener('change', handleInputChange);
-
-// Optional: Allow Enter key to calculate score
-document.addEventListener('keypress', (event) => {
-  if (event.key === 'Enter') {
-    handleCalculateScore();
-  }
-});
 import { calculateScore } from './scoring.js';
 
-// Game state
-const gameState = {
-  players: [
-    { name: 'Player 1', bids: [], tricks: [], roundScores: [], totalScore: 0 },
-    { name: 'Player 2', bids: [], tricks: [], roundScores: [], totalScore: 0 },
-    { name: 'Player 3', bids: [], tricks: [], roundScores: [], totalScore: 0 },
-    { name: 'Player 4', bids: [], tricks: [], roundScores: [], totalScore: 0 },
-  ],
-  currentRound: 1,
-  roundHistory: {}, // { roundNum: [{ bid, tricks, score }] }
-  formLocked: false,
-};
+/**
+ * Game state manager - keeps track of current game state
+ */
+class GameStateManager {
+  constructor() {
+    this.currentRound = 1;
+    this.players = [];
+    this.formLocked = false;
+    this.init();
+  }
 
-const STORAGE_KEY = 'skullKingGameState';
-const OLD_STORAGE_KEY = 'skull-king-state'; // for migration
-
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
-
-function initializeApp() {
-  loadGameState();
-  renderScoreboard();
-  attachEventListeners();
-}
-
-function loadGameState() {
-  // Try to load from new key
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored);
-      Object.assign(gameState, parsed);
-    } catch (error) {
-      console.error('Failed to parse stored game state:', error);
-      // Fall through to default gameState
+  init() {
+    this.loadGameState();
+    if (this.players.length === 0) {
+      this.initializePlayers();
     }
-  } else {
-    // Try to migrate from old key
-    const oldStored = localStorage.getItem(OLD_STORAGE_KEY);
-    if (oldStored) {
-      try {
-        const parsed = JSON.parse(oldStored);
-        Object.assign(gameState, parsed);
-        localStorage.removeItem(OLD_STORAGE_KEY); // Remove old key
-        saveGameState(); // Save under new key
-      } catch (error) {
-        console.error('Failed to migrate old game state:', error);
-      }
+  }
+
+  initializePlayers() {
+    this.players = [
+      { name: 'Player 1', bid: 0, tricks: 0, roundScore: 0, totalScore: 0 },
+      { name: 'Player 2', bid: 0, tricks: 0, roundScore: 0, totalScore: 0 },
+      { name: 'Player 3', bid: 0, tricks: 0, roundScore: 0, totalScore: 0 },
+      { name: 'Player 4', bid: 0, tricks: 0, roundScore: 0, totalScore: 0 }
+    ];
+  }
+
+  loadGameState() {
+    const saved = localStorage.getItem('skullKingGameState');
+    if (saved) {
+      const state = JSON.parse(saved);
+      this.currentRound = state.currentRound || 1;
+      this.players = state.players || [];
+      this.formLocked = state.formLocked || false;
     }
+  }
+
+  saveGameState() {
+    localStorage.setItem('skullKingGameState', JSON.stringify({
+      currentRound: this.currentRound,
+      players: this.players,
+      formLocked: this.formLocked
+    }));
+  }
+
+  resetGame() {
+    this.currentRound = 1;
+    this.formLocked = false;
+    this.initializePlayers();
+    this.saveGameState();
+  }
+
+  nextRound() {
+    this.currentRound++;
+    this.formLocked = false;
+    // Reset bid and tricks for new round but keep totalScore
+    this.players.forEach(player => {
+      player.bid = 0;
+      player.tricks = 0;
+      player.roundScore = 0;
+    });
+    this.saveGameState();
   }
 }
 
-function saveGameState() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
-  } catch (error) {
-    console.error('Failed to save game state:', error);
+/**
+ * Input validator - validates bid and tricks values
+ */
+class InputValidator {
+  static validatePlayerInputs(bid, tricks) {
+    const errors = [];
+
+    const bidNum = parseInt(bid, 10);
+    const tricksNum = parseInt(tricks, 10);
+
+    if (bid === '' || tricks === '') {
+      errors.push('All bid and tricks values must be filled in.');
+      return { valid: false, errors };
+    }
+
+    if (isNaN(bidNum) || isNaN(tricksNum)) {
+      errors.push('Bid and tricks must be valid numbers.');
+      return { valid: false, errors };
+    }
+
+    if (bidNum < 0 || bidNum > 13) {
+      errors.push('Bid must be between 0 and 13.');
+    }
+
+    if (tricksNum < 0 || tricksNum > 13) {
+      errors.push('Tricks must be between 0 and 13.');
+    }
+
+    return { valid: errors.length === 0, errors };
+  }
+
+  static validateAllPlayersInputs(playerRows) {
+    const allErrors = [];
+
+    playerRows.forEach((row, index) => {
+      const bidInput = row.querySelector('.bid-input');
+      const tricksInput = row.querySelector('.tricks-input');
+
+      if (!bidInput || !tricksInput) {
+        allErrors.push(`Row ${index + 1}: Input elements not found.`);
+        return;
+      }
+
+      const { valid, errors } = this.validatePlayerInputs(
+        bidInput.value,
+        tricksInput.value
+      );
+
+      if (!valid) {
+        allErrors.push(`Player ${index + 1}: ${errors.join(' ')}`);
+      }
+    });
+
+    return { valid: allErrors.length === 0, errors: allErrors };
   }
 }
 
-// ============================================================================
-// DOM MANIPULATION
-// ============================================================================
-
-function renderScoreboard() {
-  const scoreboardBody = document.getElementById('scoreboard-body');
-  const rows = scoreboardBody.querySelectorAll('.player-row');
-
-  rows.forEach((row, playerIndex) => {
-    const player = gameState.players[playerIndex];
-
-    // Update player name
-    const nameCell = row.querySelector('.player-name');
-    if (nameCell) {
-      nameCell.textContent = player.name;
-    }
-
-    // Update bid input and sync from gameState
-    const bidInput = row.querySelector('.bid-input');
-    if (bidInput) {
-      const currentBid = player.bids[gameState.currentRound - 1];
-      if (currentBid !== undefined) {
-        bidInput.value = currentBid;
-      }
-      // Disable if form is locked
-      bidInput.disabled = gameState.formLocked;
-    }
-
-    // Update tricks input and sync from gameState
-    const tricksInput = row.querySelector('.tricks-input');
-    if (tricksInput) {
-      const currentTricks = player.tricks[gameState.currentRound - 1];
-      if (currentTricks !== undefined) {
-        tricksInput.value = currentTricks;
-      }
-      // Disable if form is locked
-      tricksInput.disabled = gameState.formLocked;
-    }
-
-    // Update round score (from history)
-    const roundScoreCell = row.querySelector('.round-score');
-    if (roundScoreCell) {
-      const roundKey = `round-${gameState.currentRound}`;
-      const historyData = gameState.roundHistory[roundKey];
-      const roundScore = historyData && historyData[playerIndex] ? historyData[playerIndex].score : 0;
-      roundScoreCell.textContent = roundScore;
-    }
-
-    // Update total score
-    const totalScoreCell = row.querySelector('.total-score');
-    if (totalScoreCell) {
-      totalScoreCell.textContent = player.totalScore;
-    }
-  });
-
-  // Update round indicator
-  const roundIndicator = document.querySelector('.round-indicator');
-  if (roundIndicator) {
-    roundIndicator.textContent = `Round ${gameState.currentRound}`;
+/**
+ * UI Manager - handles all DOM interactions and updates
+ */
+class UIManager {
+  constructor(gameState) {
+    this.gameState = gameState;
+    this.calculateBtn = document.getElementById('calculate-score-btn');
+    this.scoreBoardBody = document.getElementById('scoreboard-body');
+    this.roundIndicator = document.querySelector('.round-indicator');
+    this.validationMessage = null;
   }
 
-  updateFormLockUI();
+  getPlayerRows() {
+    return Array.from(this.scoreBoardBody.querySelectorAll('.player-row'));
+  }
+
+  getPlayerInputs() {
+    const playerRows = this.getPlayerRows();
+    return playerRows.map((row, index) => ({
+      index,
+      bidInput: row.querySelector('.bid-input'),
+      tricksInput: row.querySelector('.tricks-input'),
+      roundScoreCell: row.querySelector('.round-score'),
+      totalScoreCell: row.querySelector('.total-score')
+    }));
+  }
+
+  displayValidationError(errors) {
+    this.clearValidationMessage();
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'validation-error';
+    messageDiv.setAttribute('role', 'alert');
+    messageDiv.textContent = errors.join(' ');
+    this.scoreBoardBody.parentElement.insertAdjacentElement('beforebegin', messageDiv);
+    this.validationMessage = messageDiv;
+  }
+
+  clearValidationMessage() {
+    if (this.validationMessage) {
+      this.validationMessage.remove();
+      this.validationMessage = null;
+    }
+  }
+
+  updateScoreboard() {
+    const playerInputs = this.getPlayerInputs();
+    playerInputs.forEach(({ index, roundScoreCell, totalScoreCell }) => {
+      const player = this.gameState.players[index];
+      if (roundScoreCell) roundScoreCell.textContent = player.roundScore;
+      if (totalScoreCell) totalScoreCell.textContent = player.totalScore;
+    });
+  }
+
+  updateRoundIndicator() {
+    if (this.roundIndicator) {
+      this.roundIndicator.textContent = `Round ${this.gameState.currentRound}`;
+    }
+  }
+
+  lockInputs() {
+    this.getPlayerInputs().forEach(({ bidInput, tricksInput }) => {
+      if (bidInput) bidInput.disabled = true;
+      if (tricksInput) tricksInput.disabled = true;
+    });
+  }
+
+  unlockInputs() {
+    this.getPlayerInputs().forEach(({ bidInput, tricksInput }) => {
+      if (bidInput) bidInput.disabled = false;
+      if (tricksInput) tricksInput.disabled = false;
+    });
+  }
+
+  disableCalculateButton() {
+    if (this.calculateBtn) {
+      this.calculateBtn.disabled = true;
+    }
+  }
+
+  enableCalculateButton() {
+    if (this.calculateBtn) {
+      this.calculateBtn.disabled = false;
+    }
+  }
+
+  attachEventListeners(onCalculate) {
+    if (this.calculateBtn) {
+      this.calculateBtn.addEventListener('click', onCalculate);
+    }
+
+    // Add input clamping for real-time validation
+    this.getPlayerInputs().forEach(({ bidInput, tricksInput }) => {
+      if (bidInput) {
+        bidInput.addEventListener('change', (e) => {
+          const val = parseInt(e.target.value, 10);
+          if (!isNaN(val)) {
+            e.target.value = Math.max(0, Math.min(13, val));
+          }
+        });
+      }
+      if (tricksInput) {
+        tricksInput.addEventListener('change', (e) => {
+          const val = parseInt(e.target.value, 10);
+          if (!isNaN(val)) {
+            e.target.value = Math.max(0, Math.min(13, val));
+          }
+        });
+      }
+    });
+  }
 }
 
-function updateFormLockUI() {
-  const calculateBtn = document.getElementById('calculate-score-btn');
-  if (calculateBtn) {
-    calculateBtn.disabled = gameState.formLocked;
-    if (gameState.formLocked) {
-      calculateBtn.textContent = 'Score Locked - New Round to Continue';
+/**
+ * Main application controller
+ */
+class SkullKingApp {
+  constructor() {
+    this.gameState = new GameStateManager();
+    this.ui = new UIManager(this.gameState);
+    this.init();
+  }
+
+  init() {
+    // Ensure DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => this.setup());
     } else {
-      calculateBtn.textContent = 'Calculate Score';
+      this.setup();
     }
   }
-}
 
-// ============================================================================
-// INPUT VALIDATION
-// ============================================================================
+  setup() {
+    this.renderScoreboard();
+    this.attachEventHandlers();
+  }
 
-function validatePlayerInputs() {
-  const scoreboardBody = document.getElementById('scoreboard-body');
-  const rows = scoreboardBody.querySelectorAll('.player-row');
-  const playerInputs = [];
-  const errors = [];
+  renderScoreboard() {
+    this.ui.updateScoreboard();
+    this.ui.updateRoundIndicator();
+  }
 
-  rows.forEach((row, playerIndex) => {
-    const player = gameState.players[playerIndex];
-    const bidInput = row.querySelector('.bid-input');
-    const tricksInput = row.querySelector('.tricks-input');
+  attachEventHandlers() {
+    this.ui.attachEventListeners(() => this.handleCalculateScore());
+  }
 
-    // Validate bid
-    const bidValue = bidInput.value.trim();
-    if (bidValue === '' || bidValue === null) {
-      errors.push(`${player.name}: Bid is required`);
-      return;
-    }
-    const bid = parseInt(bidValue, 10);
-    if (isNaN(bid) || bid < 0 || bid > 13) {
-      errors.push(`${player.name}: Bid must be between 0 and 13`);
-      return;
-    }
+  handleCalculateScore() {
+    // Clear previous validation messages
+    this.ui.clearValidationMessage();
 
-    // Validate tricks
-    const tricksValue = tricksInput.value.trim();
-    if (tricksValue === '' || tricksValue === null) {
-      errors.push(`${player.name}: Tricks taken is required`);
-      return;
-    }
-    const tricks = parseInt(tricksValue, 10);
-    if (isNaN(tricks) || tricks < 0 || tricks > 13) {
-      errors.push(`${player.name}: Tricks taken must be between 0 and 13`);
+    // Validate all inputs first
+    const playerRows = this.ui.getPlayerRows();
+    const validation = InputValidator.validateAllPlayersInputs(playerRows);
+
+    if (!validation.valid) {
+      this.ui.displayValidationError(validation.errors);
       return;
     }
 
-    playerInputs.push({ playerIndex, player, bid, tricks });
-  });
-
-  if (errors.length > 0) {
-    alert('Validation Errors:\n' + errors.join('\n'));
-    return null;
-  }
-
-  return playerInputs;
-}
-
-// ============================================================================
-// EVENT HANDLERS
-// ============================================================================
-
-function handleCalculateScore() {
-  const inputs = validatePlayerInputs();
-  if (!inputs) {
-    return;
-  }
-
-  // Initialize round history if needed
-  const roundKey = `round-${gameState.currentRound}`;
-  if (!gameState.roundHistory[roundKey]) {
-    gameState.roundHistory[roundKey] = [];
-  }
-
-  // Calculate and store scores
-  inputs.forEach(({ playerIndex, player, bid, tricks }) => {
-    const score = calculateScore(bid, tricks);
-
-    // Store bid/tricks for this round
-    player.bids[gameState.currentRound - 1] = bid;
-    player.tricks[gameState.currentRound - 1] = tricks;
-
-    // Store score in history
-    gameState.roundHistory[roundKey][playerIndex] = { bid, tricks, score };
-
-    // Update total score
-    player.totalScore += score;
-  });
-
-  // Lock the form
-  gameState.formLocked = true;
-
-  // Save and re-render
-  saveGameState();
-  renderScoreboard();
-}
-
-function handleNewRound() {
-  // Check if we've reached max rounds
-  if (gameState.currentRound >= 13) {
-    alert('Maximum 13 rounds reached. Please reset the game to play again.');
-    return;
-  }
-
-  gameState.currentRound += 1;
-  gameState.formLocked = false;
-
-  // Save and re-render (preserves history, shows new round inputs)
-  saveGameState();
-  renderScoreboard();
-}
-
-function handleResetGame() {
-  const confirm = window.confirm('Are you sure you want to reset the game? All progress will be lost.');
-  if (!confirm) {
-    return;
-  }
-
-  // Reset game state
-  gameState.players = [
-    { name: 'Player 1', bids: [], tricks: [], roundScores: [], totalScore: 0 },
-    { name: 'Player 2', bids: [], tricks: [], roundScores: [], totalScore: 0 },
-    { name: 'Player 3', bids: [], tricks: [], roundScores: [], totalScore: 0 },
-    { name: 'Player 4', bids: [], tricks: [], roundScores: [], totalScore: 0 },
-  ];
-  gameState.currentRound = 1;
-  gameState.roundHistory = {};
-  gameState.formLocked = false;
-
-  // Save and re-render
-  saveGameState();
-  renderScoreboard();
-}
-
-// ============================================================================
-// EVENT LISTENER SETUP
-// ============================================================================
-
-function attachEventListeners() {
-  // Calculate Score button
-  const calculateBtn = document.getElementById('calculate-score-btn');
-  if (calculateBtn) {
-    calculateBtn.addEventListener('click', handleCalculateScore);
-  }
-
-  // New Round button (may not exist in initial HTML, create if needed)
-  let newRoundBtn = document.getElementById('new-round-btn');
-  if (!newRoundBtn) {
-    const controlsDiv = document.querySelector('.scoreboard-controls');
-    if (controlsDiv) {
-      newRoundBtn = document.createElement('button');
-      newRoundBtn.id = 'new-round-btn';
-      newRoundBtn.className = 'new-round-btn';
-      newRoundBtn.textContent = 'New Round';
-      controlsDiv.appendChild(newRoundBtn);
-      newRoundBtn.addEventListener('click', handleNewRound);
+    // Prevent double-clicking (form already locked)
+    if (this.gameState.formLocked) {
+      return;
     }
-  } else {
-    newRoundBtn.addEventListener('click', handleNewRound);
+
+    try {
+      // Get current inputs
+      const playerInputs = this.ui.getPlayerInputs();
+      const currentScores = [];
+
+      // Calculate scores for each player
+      playerInputs.forEach(({ index, bidInput, tricksInput }) => {
+        const bid = parseInt(bidInput.value, 10);
+        const tricks = parseInt(tricksInput.value, 10);
+
+        // Use the scoring module to calculate round score
+        const roundScore = calculateScore(bid, tricks);
+
+        currentScores.push({ index, bid, tricks, roundScore });
+      });
+
+      // Update game state with new round scores and total scores
+      currentScores.forEach(({ index, bid, tricks, roundScore }) => {
+        this.gameState.players[index].bid = bid;
+        this.gameState.players[index].tricks = tricks;
+        this.gameState.players[index].roundScore = roundScore;
+        this.gameState.players[index].totalScore += roundScore;
+      });
+
+      // Lock the form to prevent re-calculation
+      this.gameState.formLocked = true;
+      this.ui.lockInputs();
+      this.ui.disableCalculateButton();
+
+      // Persist state
+      this.gameState.saveGameState();
+
+      // Update UI with new scores
+      this.renderScoreboard();
+
+      // Add controls for next round / reset
+      this.addRoundControls();
+    } catch (error) {
+      console.error('Error calculating score:', error);
+      this.ui.displayValidationError(['An error occurred while calculating scores. Please try again.']);
+    }
   }
 
-  // Reset Game button (may not exist in initial HTML, create if needed)
-  let resetBtn = document.getElementById('reset-btn');
-  if (!resetBtn) {
-    const controlsDiv = document.querySelector('.scoreboard-controls');
-    if (controlsDiv) {
-      resetBtn = document.createElement('button');
-      resetBtn.id = 'reset-btn';
-      resetBtn.className = 'reset-btn';
-      resetBtn.textContent = 'Reset Game';
-      controlsDiv.appendChild(resetBtn);
-      resetBtn.addEventListener('click', handleResetGame);
+  addRoundControls() {
+    // Check if controls already exist
+    const existingControls = document.querySelector('.round-controls');
+    if (existingControls) {
+      return;
     }
-  } else {
-    resetBtn.addEventListener('click', handleResetGame);
+
+    const controlsDiv = document.createElement('div');
+    controlsDiv.className = 'round-controls';
+
+    const newRoundBtn = document.createElement('button');
+    newRoundBtn.textContent = 'Next Round';
+    newRoundBtn.className = 'new-round-btn';
+    newRoundBtn.addEventListener('click', () => this.handleNextRound());
+
+    const resetBtn = document.createElement('button');
+    resetBtn.textContent = 'Reset Game';
+    resetBtn.className = 'reset-btn';
+    resetBtn.addEventListener('click', () => this.handleResetGame());
+
+    controlsDiv.appendChild(newRoundBtn);
+    controlsDiv.appendChild(resetBtn);
+
+    // Find scoreboard-controls container
+    const scoreBoardControls = document.querySelector('.scoreboard-controls');
+    if (scoreBoardControls) {
+      scoreBoardControls.appendChild(controlsDiv);
+    } else {
+      // Fallback: insert after scoreboard-wrapper
+      const scoreBoardWrapper = document.querySelector('.scoreboard-wrapper');
+      if (scoreBoardWrapper) {
+        scoreBoardWrapper.insertAdjacentElement('afterend', controlsDiv);
+      }
+    }
+  }
+
+  handleNextRound() {
+    this.gameState.nextRound();
+    this.ui.unlockInputs();
+    this.ui.enableCalculateButton();
+    this.ui.clearValidationMessage();
+
+    // Clear inputs
+    const playerInputs = this.ui.getPlayerInputs();
+    playerInputs.forEach(({ bidInput, tricksInput }) => {
+      if (bidInput) bidInput.value = '';
+      if (tricksInput) tricksInput.value = '';
+    });
+
+    // Remove round controls
+    const roundControls = document.querySelector('.round-controls');
+    if (roundControls) {
+      roundControls.remove();
+    }
+
+    this.renderScoreboard();
+  }
+
+  handleResetGame() {
+    if (confirm('Are you sure you want to reset the entire game? All scores will be lost.')) {
+      this.gameState.resetGame();
+      this.ui.unlockInputs();
+      this.ui.enableCalculateButton();
+      this.ui.clearValidationMessage();
+
+      // Clear inputs
+      const playerInputs = this.ui.getPlayerInputs();
+      playerInputs.forEach(({ bidInput, tricksInput }) => {
+        if (bidInput) bidInput.value = '';
+        if (tricksInput) tricksInput.value = '';
+      });
+
+      // Remove round controls
+      const roundControls = document.querySelector('.round-controls');
+      if (roundControls) {
+        roundControls.remove();
+      }
+
+      this.renderScoreboard();
+    }
   }
 }
 
-// ============================================================================
-// APP STARTUP
-// ============================================================================
-
-document.addEventListener('DOMContentLoaded', initializeApp);
+// Initialize the app when the module loads
+const app = new SkullKingApp();
