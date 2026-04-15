@@ -16,18 +16,172 @@
 
         <form id="tricksEntryForm" class="tricks-form">
             <div id="playersContainer" class="players-container">
-                <!-- Player rows will be dynamically populated here by JavaScript -->
+                <!-- Player rows will be populated from template -->
             </div>
 
             <div class="button-group">
                 <button type="submit" id="confirmBtn" class="btn btn-primary">Confirm</button>
-                <button type="button" id="backBtn" class="btn btn-secondary">Back to Game</button>
+                <a href="index.html" id="backBtn" class="btn btn-secondary">Back to Game</a>
             </div>
+
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
         </form>
 
-        <div id="errorMessage" class="error-message" style="display: none;"></div>
+        <!-- Template for player rows with visible input structure -->
+        <template id="playerRowTemplate">
+            <div class="player-row">
+                <div class="player-info">
+                    <h3 class="player-name">Player Name</h3>
+                    <p class="player-bid">Bid: <span class="bid-value">0</span></p>
+                </div>
+                <div class="player-inputs">
+                    <div class="input-group">
+                        <label for="playerTricks">Tricks Taken:</label>
+                        <input type="number" class="tricks-input" min="0" max="10" value="0" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="playerBonus">Bonus Points:</label>
+                        <input type="number" class="bonus-input" min="0" max="500" value="0" required>
+                    </div>
+                </div>
+            </div>
+        </template>
     </div>
 
-    <script src="js/tricksEntry.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load game state from localStorage
+            const gameState = JSON.parse(localStorage.getItem('skullKingGameState')) || {};
+            const players = gameState.players || [];
+            const currentRound = gameState.currentRound || 1;
+            const bids = gameState.bids || {};
+
+            // Update round display
+            document.getElementById('currentRound').textContent = currentRound;
+
+            // Get template and container
+            const template = document.getElementById('playerRowTemplate');
+            const container = document.getElementById('playersContainer');
+            
+            // Clear container
+            container.innerHTML = '';
+
+            // Create player rows from template
+            players.forEach((player, index) => {
+                const clone = template.content.cloneNode(true);
+                const playerRow = clone.querySelector('.player-row');
+                
+                // Set player name
+                const playerName = clone.querySelector('.player-name');
+                playerName.textContent = player.name || `Player ${index + 1}`;
+                
+                // Set bid value
+                const bidValue = clone.querySelector('.bid-value');
+                bidValue.textContent = bids[player.id] || 0;
+                
+                // Configure tricks input
+                const tricksInput = clone.querySelector('.tricks-input');
+                tricksInput.setAttribute('max', currentRound);
+                tricksInput.setAttribute('id', `player${index}Tricks`);
+                tricksInput.setAttribute('name', `player${index}Tricks`);
+                
+                // Configure bonus input
+                const bonusInput = clone.querySelector('.bonus-input');
+                bonusInput.setAttribute('id', `player${index}Bonus`);
+                bonusInput.setAttribute('name', `player${index}Bonus`);
+                
+                // Update labels
+                const tricksLabel = clone.querySelector('label[for="playerTricks"]');
+                tricksLabel.setAttribute('for', `player${index}Tricks`);
+                
+                const bonusLabel = clone.querySelector('label[for="playerBonus"]');
+                bonusLabel.setAttribute('for', `player${index}Bonus`);
+                
+                container.appendChild(clone);
+            });
+
+            // Handle form submission
+            document.getElementById('tricksEntryForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const tricksInputs = document.querySelectorAll('.tricks-input');
+                const bonusInputs = document.querySelectorAll('.bonus-input');
+                const errorMessage = document.getElementById('errorMessage');
+                
+                // Validate inputs
+                let isValid = true;
+                let totalTricks = 0;
+                
+                tricksInputs.forEach(input => {
+                    const value = parseInt(input.value) || 0;
+                    const max = parseInt(input.getAttribute('max')) || currentRound;
+                    
+                    if (value < 0 || value > max) {
+                        isValid = false;
+                        input.classList.add('error');
+                    } else {
+                        input.classList.remove('error');
+                        totalTricks += value;
+                    }
+                });
+                
+                bonusInputs.forEach(input => {
+                    const value = parseInt(input.value) || 0;
+                    const max = parseInt(input.getAttribute('max')) || 500;
+                    
+                    if (value < 0 || value > max) {
+                        isValid = false;
+                        input.classList.add('error');
+                    } else {
+                        input.classList.remove('error');
+                    }
+                });
+                
+                if (!isValid) {
+                    errorMessage.textContent = 'Please check your entries. Tricks must be between 0 and ' + currentRound + ', and bonus points between 0 and 500.';
+                    errorMessage.style.display = 'block';
+                    return;
+                }
+                
+                // Calculate and save scores
+                const scores = [];
+                tricksInputs.forEach((input, index) => {
+                    const tricks = parseInt(input.value) || 0;
+                    const bonus = parseInt(bonusInputs[index].value) || 0;
+                    const playerBid = parseInt(document.querySelectorAll('.bid-value')[index].textContent) || 0;
+                    
+                    // Basic scoring logic (can be enhanced)
+                    let roundScore = 0;
+                    if (tricks === playerBid) {
+                        roundScore = 20 + (tricks * 10) + bonus;
+                    } else {
+                        const diff = Math.abs(tricks - playerBid);
+                        roundScore = -(diff * 10) + bonus;
+                    }
+                    
+                    scores.push({
+                        playerId: players[index].id,
+                        tricks: tricks,
+                        bonus: bonus,
+                        score: roundScore
+                    });
+                });
+                
+                // Save to localStorage
+                gameState.scores = gameState.scores || [];
+                gameState.scores.push({
+                    round: currentRound,
+                    playerScores: scores
+                });
+                
+                localStorage.setItem('skullKingGameState', JSON.stringify(gameState));
+                
+                // Redirect to game page
+                window.location.href = 'index.html';
+            });
+
+            // Back button is now an anchor tag with href
+        });
+    </script>
 </body>
 </html>
