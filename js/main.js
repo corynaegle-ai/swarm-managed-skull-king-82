@@ -14,8 +14,8 @@ if (document.readyState === 'loading') {
 
 function initializeApp() {
   try {
-    const gameController = new GameController();
-    gameController.startGame();
+    window.gameController = new GameController();
+    window.gameController.startGame();
   } catch (error) {
     console.error('Failed to initialize game:', error);
   }

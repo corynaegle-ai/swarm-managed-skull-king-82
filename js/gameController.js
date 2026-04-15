@@ -1,4 +1,185 @@
 /**
+ * Game Controller Module
+ * Orchestrates game flow by combining gameState and phaseRenderer modules
+ */
+
+import { GameState } from './gameState.js';
+import { PhaseRenderer } from './phaseRenderer.js';
+
+export class GameController {
+  constructor() {
+    this.gameState = new GameState();
+    this.phaseRenderer = new PhaseRenderer();
+    this.setupEventListeners();
+  }
+
+  /**
+   * Initialize and start the game
+   */
+  startGame() {
+    try {
+      this.gameState.initialize();
+      this.updateDisplay();
+      this.phaseRenderer.renderGamePhase(this.gameState.getCurrentPhase());
+    } catch (error) {
+      console.error('Error starting game:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Handle transitions between game phases
+   * @param {string} nextPhase - The next phase to transition to
+   */
+  handlePhaseTransition(nextPhase) {
+    try {
+      const currentPhase = this.gameState.getCurrentPhase();
+      
+      // Validate phase transition
+      if (!this.isValidTransition(currentPhase, nextPhase)) {
+        console.warn(`Invalid transition from ${currentPhase} to ${nextPhase}`);
+        return;
+      }
+
+      // Update game state
+      this.gameState.setPhase(nextPhase);
+      
+      // Render the new phase
+      this.phaseRenderer.renderGamePhase(nextPhase);
+      
+      // Update display
+      this.updateDisplay();
+    } catch (error) {
+      console.error('Error during phase transition:', error);
+    }
+  }
+
+  /**
+   * Update the display based on current game state
+   */
+  updateDisplay() {
+    try {
+      const gameState = this.gameState.getState();
+      this.phaseRenderer.updateScoreboard(gameState.players, gameState.round);
+      this.phaseRenderer.updateGameInfo(gameState);
+    } catch (error) {
+      console.error('Error updating display:', error);
+    }
+  }
+
+  /**
+   * Validate if a phase transition is allowed
+   * @param {string} from - Current phase
+   * @param {string} to - Target phase
+   * @returns {boolean} - Whether transition is valid
+   */
+  isValidTransition(from, to) {
+    const validTransitions = {
+      'setup': ['bidding'],
+      'bidding': ['playing'],
+      'playing': ['scoring'],
+      'scoring': ['bidding', 'gameEnd']
+    };
+
+    return validTransitions[from] && validTransitions[from].includes(to);
+  }
+
+  /**
+   * Set up event listeners for user interactions
+   * Uses event delegation for dynamically created elements
+   */
+  setupEventListeners() {
+    const mainContainer = document.getElementById('main-game-container');
+    
+    if (!mainContainer) {
+      console.warn('Main game container not found');
+      return;
+    }
+
+    // Bid input changes
+    mainContainer.addEventListener('change', (event) => {
+      if (event.target.classList.contains('bid-input')) {
+        this.handleBidInput(event.target);
+      }
+      if (event.target.classList.contains('tricks-input')) {
+        this.handleTricksInput(event.target);
+      }
+    });
+
+    // Calculate score button
+    mainContainer.addEventListener('click', (event) => {
+      if (event.target.id === 'calculate-score-btn') {
+        this.handleCalculateScore();
+      }
+    });
+  }
+
+  /**
+   * Handle bid input changes
+   * @param {HTMLInputElement} input - The bid input element
+   */
+  handleBidInput(input) {
+    try {
+      const playerIndex = this.getPlayerIndexFromElement(input);
+      const bid = parseInt(input.value) || 0;
+      this.gameState.updatePlayerBid(playerIndex, bid);
+      this.updateDisplay();
+    } catch (error) {
+      console.error('Error handling bid input:', error);
+    }
+  }
+
+  /**
+   * Handle tricks input changes
+   * @param {HTMLInputElement} input - The tricks input element
+   */
+  handleTricksInput(input) {
+    try {
+      const playerIndex = this.getPlayerIndexFromElement(input);
+      const tricks = parseInt(input.value) || 0;
+      this.gameState.updatePlayerTricks(playerIndex, tricks);
+      this.updateDisplay();
+    } catch (error) {
+      console.error('Error handling tricks input:', error);
+    }
+  }
+
+  /**
+   * Handle score calculation
+   */
+  handleCalculateScore() {
+    try {
+      this.gameState.calculateRoundScore();
+      this.updateDisplay();
+      this.handlePhaseTransition('scoring');
+    } catch (error) {
+      console.error('Error calculating score:', error);
+    }
+  }
+
+  /**
+   * Get player index from a DOM element in the scoreboard
+   * @param {HTMLElement} element - The element to check
+   * @returns {number} - The player index
+   */
+  getPlayerIndexFromElement(element) {
+    const row = element.closest('.player-row');
+    if (!row) {
+      throw new Error('Could not find player row for element');
+    }
+    const rows = Array.from(document.querySelectorAll('.player-row'));
+    return rows.indexOf(row);
+  }
+
+  /**
+   * Get current game state (for debugging)
+   * @returns {object} - Current game state
+   */
+  getState() {
+    return this.gameState.getState();
+  }
+}
+/**
  * Game Controller
  * Orchestrates game flow by combining gameState and phaseRenderer modules
  */
