@@ -1,301 +1,211 @@
-import { calculateScore } from './game.js';
-
-// DOM Elements
-const calculateBtn = document.getElementById('calculate-score-btn');
-const scoreboardBody = document.getElementById('scoreboard-body');
-
-// Initialize event listeners
-function initializeEventListeners() {
-    calculateBtn.addEventListener('click', handleCalculateScore);
-}
-
-// Handle calculate score button click
-function handleCalculateScore() {
-    const playerRows = scoreboardBody.querySelectorAll('.player-row');
-    
-    playerRows.forEach((row, index) => {
-        const bidInput = row.querySelector('.bid-input');
-        const tricksInput = row.querySelector('.tricks-input');
-        const roundScoreCell = row.querySelector('.round-score');
-        
-        const bid = parseInt(bidInput.value) || 0;
-        const tricks = parseInt(tricksInput.value) || 0;
-        
-        // Calculate score using game logic
-        const roundScore = calculateScore(bid, tricks);
-        
-        // Update DOM with calculated score
-        roundScoreCell.textContent = roundScore;
-        
-        // Update total score (accumulate from all rounds)
-        updateTotalScore(row, roundScore);
-    });
-}
-
-// Update total score by accumulating round scores
-function updateTotalScore(playerRow, roundScore) {
-    const totalScoreCell = playerRow.querySelector('.total-score');
-    const currentTotal = parseInt(totalScoreCell.textContent) || 0;
-    const newTotal = currentTotal + roundScore;
-    totalScoreCell.textContent = newTotal;
-}
-
-// Add real-time input validation
-function setupInputValidation() {
-    const bidInputs = scoreboardBody.querySelectorAll('.bid-input');
-    const tricksInputs = scoreboardBody.querySelectorAll('.tricks-input');
-    
-    [...bidInputs, ...tricksInputs].forEach(input => {
-        input.addEventListener('change', validateInput);
-    });
-}
-
-// Validate input values
-function validateInput(event) {
-    const input = event.target;
-    const value = parseInt(input.value) || 0;
-    const min = parseInt(input.min);
-    const max = parseInt(input.max);
-    
-    if (value < min) input.value = min;
-    if (value > max) input.value = max;
-}
-
-// Initialize app on DOM ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        initializeEventListeners();
-        setupInputValidation();
-    });
-} else {
-    initializeEventListeners();
-    setupInputValidation();
-}
 /**
- * Skull King - Main Application Controller
- * Connects UI to scoring logic and handles user interactions
+ * Main application controller for Skull King scoring app
+ * Connects HTML UI to game logic and manages user interactions
  */
 
-// Import scoring engine
-import { calculateScore } from './scoring.js';
+import { calculateScore } from './game.js';
 
 /**
  * Game state object to track scores across rounds
  */
 const gameState = {
   players: [
-    { name: 'Player 1', totalScore: 0 },
-    { name: 'Player 2', totalScore: 0 },
-    { name: 'Player 3', totalScore: 0 },
-    { name: 'Player 4', totalScore: 0 }
-  ]
+    { name: 'Player 1', bid: 0, tricks: 0, roundScore: 0, totalScore: 0 },
+    { name: 'Player 2', bid: 0, tricks: 0, roundScore: 0, totalScore: 0 },
+    { name: 'Player 3', bid: 0, tricks: 0, roundScore: 0, totalScore: 0 },
+    { name: 'Player 4', bid: 0, tricks: 0, roundScore: 0, totalScore: 0 },
+  ],
 };
 
 /**
- * Initialize the application
- */
-function initializeApp() {
-  const calculateBtn = document.getElementById('calculate-score-btn');
-  
-  if (!calculateBtn) {
-    console.error('Calculate score button not found');
-    return;
-  }
-
-  // Add click listener to calculate score button
-  calculateBtn.addEventListener('click', handleCalculateScore);
-
-  // Optional: Add real-time validation listeners to inputs
-  const scoreboardBody = document.getElementById('scoreboard-body');
-  if (scoreboardBody) {
-    scoreboardBody.addEventListener('change', handleInputChange);
-  }
-}
-
-/**
- * Handle input change events for real-time validation
- */
-function handleInputChange(event) {
-  const target = event.target;
-  
-  // Validate bid and tricks inputs
-  if (target.classList.contains('bid-input') || target.classList.contains('tricks-input')) {
-    validateInput(target);
-  }
-}
-
-/**
- * Validate individual input field
+ * Validates a single input value
  * @param {HTMLInputElement} input - The input element to validate
+ * @returns {boolean} - True if valid, false otherwise
  */
 function validateInput(input) {
   const value = parseInt(input.value, 10);
-  
-  // Check if value is within valid range (0-13)
-  if (isNaN(value) || value < 0 || value > 13) {
-    input.classList.add('invalid');
+  const min = input.hasAttribute('min') ? parseInt(input.getAttribute('min'), 10) : -Infinity;
+  const max = input.hasAttribute('max') ? parseInt(input.getAttribute('max'), 10) : Infinity;
+
+  // Check if value is a valid number
+  if (isNaN(value)) {
+    input.classList.add('error');
     return false;
   }
-  
-  input.classList.remove('invalid');
+
+  // Check if value is within bounds
+  if (value < min || value > max) {
+    input.classList.add('error');
+    return false;
+  }
+
+  // Remove error styling if valid
+  input.classList.remove('error');
   return true;
 }
 
 /**
- * Collect player data from the scoreboard
- * @returns {Array} Array of player objects with bid and tricks data
+ * Validates all inputs in a player row
+ * @param {HTMLTableRowElement} row - The player row element
+ * @returns {boolean} - True if all inputs in row are valid, false otherwise
  */
-function collectPlayerData() {
-  const playerRows = document.querySelectorAll('#scoreboard-body .player-row');
-  const players = [];
-  
-  playerRows.forEach((row, index) => {
-    const bidInput = row.querySelector('.bid-input');
-    const tricksInput = row.querySelector('.tricks-input');
-    const playerName = row.querySelector('.player-name');
-    
-    const bid = parseInt(bidInput.value, 10);
-    const tricks = parseInt(tricksInput.value, 10);
-    
-    players.push({
-      name: playerName.textContent,
-      bid: bid,
-      tricks: tricks,
-      rowIndex: index,
-      bidInput: bidInput,
-      tricksInput: tricksInput
-    });
-  });
-  
-  return players;
+function validatePlayerRow(row) {
+  const bidInput = row.querySelector('.bid-input');
+  const tricksInput = row.querySelector('.tricks-input');
+
+  const bidValid = validateInput(bidInput);
+  const tricksValid = validateInput(tricksInput);
+
+  return bidValid && tricksValid;
 }
 
 /**
- * Validate all player inputs before calculation
- * @param {Array} players - Array of player objects
- * @returns {Object} Validation result with isValid flag and error message
+ * Gets player data from a scoreboard row
+ * @param {HTMLTableRowElement} row - The player row element
+ * @returns {Object} - Object with bid and tricks properties
  */
-function validateAllInputs(players) {
-  for (const player of players) {
-    const bid = player.bid;
-    const tricks = player.tricks;
-    
-    // Check if values are within valid range
-    if (isNaN(bid) || bid < 0 || bid > 13) {
-      return {
-        isValid: false,
-        message: `${player.name}: Bid must be between 0 and 13`
-      };
-    }
-    
-    if (isNaN(tricks) || tricks < 0 || tricks > 13) {
-      return {
-        isValid: false,
-        message: `${player.name}: Tricks taken must be between 0 and 13`
-      };
-    }
-    
-    // Check if tricks don't exceed bid (optional but common rule)
-    // Commenting out for flexibility - uncomment if this rule applies
-    // if (tricks > bid && bid !== 0) {
-    //   return {
-    //     isValid: false,
-    //     message: `${player.name}: Tricks taken cannot exceed bid`
-    //   };
-    // }
+function getPlayerData(row) {
+  const bidInput = row.querySelector('.bid-input');
+  const tricksInput = row.querySelector('.tricks-input');
+
+  return {
+    bid: parseInt(bidInput.value, 10),
+    tricks: parseInt(tricksInput.value, 10),
+  };
+}
+
+/**
+ * Updates the scoreboard display with calculated scores
+ * @param {number} playerIndex - Index of the player in gameState.players
+ * @param {number} roundScore - The calculated round score
+ */
+function updateScoreboard(playerIndex, roundScore) {
+  // Update game state
+  gameState.players[playerIndex].roundScore = roundScore;
+  gameState.players[playerIndex].totalScore += roundScore;
+
+  // Get the DOM row for this player
+  const rows = document.querySelectorAll('.player-row');
+  const row = rows[playerIndex];
+
+  if (!row) {
+    console.error(`Player row ${playerIndex} not found in DOM`);
+    return;
   }
-  
-  return { isValid: true };
+
+  // Update round score display
+  const roundScoreCell = row.querySelector('.round-score');
+  if (roundScoreCell) {
+    roundScoreCell.textContent = roundScore.toString();
+  }
+
+  // Update total score display
+  const totalScoreCell = row.querySelector('.total-score');
+  if (totalScoreCell) {
+    totalScoreCell.textContent = gameState.players[playerIndex].totalScore.toString();
+  }
 }
 
 /**
- * Update the scoreboard display with calculated scores
- * @param {Array} players - Array of player objects with calculated scores
- */
-function updateScoreDisplay(players) {
-  const playerRows = document.querySelectorAll('#scoreboard-body .player-row');
-  
-  players.forEach((player, index) => {
-    const row = playerRows[index];
-    if (!row) return;
-    
-    // Update round score
-    const roundScoreCell = row.querySelector('.round-score');
-    if (roundScoreCell) {
-      roundScoreCell.textContent = player.roundScore || 0;
-    }
-    
-    // Update total score
-    const totalScoreCell = row.querySelector('.total-score');
-    if (totalScoreCell) {
-      totalScoreCell.textContent = player.totalScore || 0;
-    }
-  });
-}
-
-/**
- * Handle the calculate score button click
+ * Handles the calculate score button click
+ * Processes all player inputs and updates scores
  */
 function handleCalculateScore() {
-  try {
-    // Collect player data from inputs
-    const players = collectPlayerData();
-    
-    // Validate all inputs
-    const validation = validateAllInputs(players);
-    if (!validation.isValid) {
-      alert(validation.message);
-      return;
+  const scoreboardBody = document.getElementById('scoreboard-body');
+  if (!scoreboardBody) {
+    console.error('Scoreboard body element not found');
+    return;
+  }
+
+  const rows = scoreboardBody.querySelectorAll('.player-row');
+  let hasErrors = false;
+
+  // First pass: validate all inputs
+  rows.forEach((row) => {
+    if (!validatePlayerRow(row)) {
+      hasErrors = true;
     }
-    
-    // Calculate scores for each player
-    const playerScores = players.map((player, index) => {
-      // Call the scoring engine
-      const roundScore = calculateScore(player.bid, player.tricks);
-      
-      // Update total score by accumulating
-      gameState.players[index].totalScore += roundScore;
-      
-      return {
-        ...player,
-        roundScore: roundScore,
-        totalScore: gameState.players[index].totalScore
-      };
-    });
-    
-    // Update the DOM with calculated scores
-    updateScoreDisplay(playerScores);
-    
-    // Log the calculation for debugging
-    console.log('Scores calculated:', playerScores);
+  });
+
+  // If there are validation errors, stop processing
+  if (hasErrors) {
+    console.warn('Invalid input values detected. Please correct errors and try again.');
+    return;
+  }
+
+  // Second pass: calculate and update scores
+  rows.forEach((row, index) => {
+    const playerData = getPlayerData(row);
+
+    // Store current input values in game state
+    gameState.players[index].bid = playerData.bid;
+    gameState.players[index].tricks = playerData.tricks;
+
+    // Calculate the round score
+    const roundScore = calculateScore(playerData.bid, playerData.tricks);
+
+    // Update scoreboard display
+    updateScoreboard(index, roundScore);
+  });
+}
+
+/**
+ * Sets up input validation with event delegation
+ * Validates inputs on change and blur events
+ */
+function setupInputValidation() {
+  const scoreboardBody = document.getElementById('scoreboard-body');
+  if (!scoreboardBody) {
+    console.error('Scoreboard body element not found during validation setup');
+    return;
+  }
+
+  // Use event delegation for input validation
+  scoreboardBody.addEventListener('change', (event) => {
+    if (event.target.classList.contains('bid-input') || event.target.classList.contains('tricks-input')) {
+      validateInput(event.target);
+    }
+  });
+
+  scoreboardBody.addEventListener('blur', (event) => {
+    if (event.target.classList.contains('bid-input') || event.target.classList.contains('tricks-input')) {
+      validateInput(event.target);
+    }
+  }, true); // Use capture phase for blur since blur doesn't bubble
+}
+
+/**
+ * Initializes event listeners for the application
+ */
+function initializeEventListeners() {
+  const calculateBtn = document.getElementById('calculate-score-btn');
+  if (!calculateBtn) {
+    console.error('Calculate button not found');
+    return;
+  }
+
+  calculateBtn.addEventListener('click', handleCalculateScore);
+}
+
+/**
+ * Main initialization function - called when DOM is ready
+ */
+function initializeApp() {
+  try {
+    setupInputValidation();
+    initializeEventListeners();
+    console.log('Skull King app initialized successfully');
   } catch (error) {
-    console.error('Error calculating scores:', error);
-    alert('An error occurred while calculating scores. Please try again.');
+    console.error('Error initializing app:', error);
   }
 }
 
 /**
- * Reset game state for a new game
+ * Wait for DOM to be fully loaded before initializing
  */
-function resetGame() {
-  gameState.players.forEach(player => {
-    player.totalScore = 0;
-  });
-  
-  // Clear all inputs and scores from the table
-  const playerRows = document.querySelectorAll('#scoreboard-body .player-row');
-  playerRows.forEach(row => {
-    row.querySelector('.bid-input').value = '0';
-    row.querySelector('.tricks-input').value = '0';
-    row.querySelector('.round-score').textContent = '0';
-    row.querySelector('.total-score').textContent = '0';
-  });
-}
-
-// Initialize the app when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
-  // DOM is already ready
+  // DOM is already loaded (e.g., when script is deferred)
   initializeApp();
 }
