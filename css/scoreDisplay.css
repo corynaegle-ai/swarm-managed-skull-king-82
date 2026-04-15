@@ -1,0 +1,313 @@
+/* Score Display Styling */
+
+/* Score Table */
+.score-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: rgba(26, 26, 46, 0.8);
+  border: 2px solid #e94560;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  margin: 20px 0;
+  font-size: 0.95rem;
+}
+
+/* Table Header */
+.score-header-row {
+  background: linear-gradient(90deg, #16213e 0%, #0f3460 100%);
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.score-header-cell {
+  padding: 12px 8px;
+  text-align: center;
+  color: #e94560;
+  border-bottom: 2px solid #e94560;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+}
+
+.score-header-cell.player-name-cell {
+  text-align: left;
+  padding-left: 15px;
+  min-width: 120px;
+}
+
+.score-header-cell.round-header {
+  min-width: 45px;
+  padding: 12px 4px;
+}
+
+.score-header-cell.total-header {
+  min-width: 60px;
+  background-color: rgba(46, 204, 113, 0.2);
+  color: #2ecc71;
+}
+
+/* Table Body Rows */
+.score-row {
+  border-bottom: 1px solid #444;
+  transition: background-color 0.3s ease;
+}
+
+.score-row:hover {
+  background-color: rgba(233, 69, 96, 0.1);
+}
+
+.score-row:last-child {
+  border-bottom: none;
+}
+
+/* Table Cells */
+.score-cell {
+  padding: 10px 8px;
+  text-align: center;
+  color: #eaeaea;
+  border-right: 1px solid #333;
+  transition: all 0.2s ease;
+}
+
+.score-cell.player-name-cell {
+  text-align: left;
+  padding-left: 15px;
+  font-weight: 600;
+  color: #e94560;
+  background-color: rgba(0, 0, 0, 0.2);
+  min-width: 120px;
+}
+
+.score-cell.round-score-cell {
+  min-width: 45px;
+  padding: 10px 4px;
+  font-weight: 500;
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.score-cell.round-score-cell.populated {
+  background-color: rgba(46, 204, 113, 0.15);
+  color: #2ecc71;
+  font-weight: 600;
+}
+
+.score-cell.total-cell {
+  min-width: 60px;
+  background-color: rgba(46, 204, 113, 0.15);
+  color: #2ecc71;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.score-cell.total-cell.populated {
+  background-color: rgba(46, 204, 113, 0.25);
+}
+
+/* Current Round Highlighting */
+.score-header-cell.current-round {
+  background-color: #e94560;
+  color: #1a1a2e;
+  box-shadow: inset 0 0 10px rgba(233, 69, 96, 0.5);
+}
+
+.score-cell.current-round {
+  background-color: rgba(233, 69, 96, 0.3);
+  border: 1px solid #e94560;
+  box-shadow: inset 0 0 8px rgba(233, 69, 96, 0.3);
+}
+
+/* Winner Row Styling */
+.score-row.winner-row {
+  background-color: rgba(46, 204, 113, 0.2);
+  border: 2px solid #2ecc71;
+}
+
+.score-row.winner-row .score-cell {
+  color: #2ecc71;
+  font-weight: 700;
+}
+
+.score-row.winner-row .score-cell.player-name-cell {
+  color: #2ecc71;
+  background-color: rgba(46, 204, 113, 0.15);
+}
+
+/* Final Scores State */
+.score-table.final-scores-active {
+  border-color: #2ecc71;
+  box-shadow: 0 0 20px rgba(46, 204, 113, 0.4);
+}
+
+/* Score Display Announcement */
+.score-display-announcement {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 30px 20px;
+  background: linear-gradient(135deg, rgba(46, 204, 113, 0.1) 0%, rgba(233, 69, 96, 0.05) 100%);
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 2px solid #2ecc71;
+  animation: slideIn 0.5s ease-out;
+}
+
+.announcement-content {
+  text-align: center;
+}
+
+.announcement-content h2 {
+  font-size: 1.8rem;
+  color: #2ecc71;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.announcement-content .winner-name {
+  font-size: 1.5rem;
+  color: #e94560;
+  font-weight: 700;
+  margin: 10px 0;
+}
+
+.announcement-content .winner-score {
+  font-size: 1.2rem;
+  color: #2ecc71;
+  font-weight: 600;
+  margin-top: 15px;
+}
+
+/* Animation for announcement */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive Design for Score Table */
+@media (max-width: 1024px) {
+  .score-table {
+    font-size: 0.85rem;
+  }
+
+  .score-header-cell,
+  .score-cell {
+    padding: 8px 4px;
+  }
+
+  .score-header-cell.player-name-cell,
+  .score-cell.player-name-cell {
+    min-width: 100px;
+    padding-left: 10px;
+  }
+
+  .score-header-cell.round-header {
+    min-width: 35px;
+  }
+
+  .score-cell.round-score-cell {
+    min-width: 35px;
+  }
+}
+
+@media (max-width: 768px) {
+  .score-table {
+    font-size: 0.75rem;
+  }
+
+  .score-header-cell,
+  .score-cell {
+    padding: 6px 3px;
+  }
+
+  .score-header-cell.player-name-cell,
+  .score-cell.player-name-cell {
+    min-width: 80px;
+    padding-left: 8px;
+  }
+
+  .score-header-cell.round-header {
+    min-width: 30px;
+    font-size: 0.7rem;
+  }
+
+  .score-cell.round-score-cell {
+    min-width: 30px;
+  }
+
+  .score-cell.total-cell {
+    min-width: 50px;
+  }
+
+  .score-display-announcement {
+    padding: 20px 15px;
+  }
+
+  .announcement-content h2 {
+    font-size: 1.4rem;
+  }
+
+  .announcement-content .winner-name {
+    font-size: 1.2rem;
+  }
+
+  .announcement-content .winner-score {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .score-table {
+    font-size: 0.65rem;
+  }
+
+  .score-header-cell,
+  .score-cell {
+    padding: 4px 2px;
+  }
+
+  .score-header-cell.player-name-cell,
+  .score-cell.player-name-cell {
+    min-width: 60px;
+    padding-left: 5px;
+  }
+
+  .score-header-cell.round-header {
+    min-width: 25px;
+    font-size: 0.6rem;
+  }
+
+  .score-cell.round-score-cell {
+    min-width: 25px;
+  }
+
+  .score-cell.total-cell {
+    min-width: 40px;
+  }
+
+  .score-display-announcement {
+    padding: 15px 10px;
+    border-radius: 6px;
+  }
+
+  .announcement-content h2 {
+    font-size: 1.1rem;
+    margin-bottom: 5px;
+  }
+
+  .announcement-content .winner-name {
+    font-size: 1rem;
+  }
+
+  .announcement-content .winner-score {
+    font-size: 0.85rem;
+  }
+}
