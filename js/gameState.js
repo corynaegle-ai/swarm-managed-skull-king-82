@@ -144,6 +144,7 @@ export class GameState {
       if (tricksWon === bid) {
         roundScore = 20 + (bid * 10);
       } else {
+        // Apply penalty for missing bid (including zero-bid cases)
         roundScore = -(bid * 10);
       }
       

@@ -1,4 +1,224 @@
 /**
+ * Game Flow Controller
+ * Orchestrates game flow by combining gameState and phaseRenderer modules
+ */
+
+import { GameState } from './gameState.js';
+import { PhaseRenderer } from './phaseRenderer.js';
+
+export class GameController {
+  constructor() {
+    this.gameState = new GameState();
+    this.phaseRenderer = new PhaseRenderer();
+    this.gameContainer = null;
+  }
+
+  /**
+   * Initializes the game controller with a container element
+   * @param {HTMLElement} containerElement - The container to render game UI
+   */
+  initialize(containerElement) {
+    if (!containerElement) {
+      throw new Error('Game container element is required');
+    }
+    this.gameContainer = containerElement;
+    this.gameState.initialize();
+    this.attachEventListeners();
+  }
+
+  /**
+   * Starts a new game
+   * @param {array} playerNames - Array of player names
+   */
+  startGame(playerNames) {
+    if (!Array.isArray(playerNames) || playerNames.length < 2) {
+      throw new Error('At least 2 players are required');
+    }
+
+    // Reset and initialize game state
+    this.gameState.initialize();
+    playerNames.forEach(name => this.gameState.addPlayer(name));
+
+    // Start with bidding phase
+    this.gameState.setCurrentPhase('bidding');
+    this.updateDisplay();
+  }
+
+  /**
+   * Handles transitions between game phases
+   * @param {string} nextPhase - The phase to transition to
+   */
+  handlePhaseTransition(nextPhase) {
+    const currentPhase = this.gameState.getCurrentPhase();
+    const currentRound = this.gameState.getCurrentRound();
+
+    // Validate phase transitions
+    const validTransitions = {
+      'setup': ['bidding'],
+      'bidding': ['scoring'],
+      'scoring': ['bidding', 'completion'],
+      'completion': []
+    };
+
+    if (!validTransitions[currentPhase] || !validTransitions[currentPhase].includes(nextPhase)) {
+      throw new Error(`Invalid transition from ${currentPhase} to ${nextPhase}`);
+    }
+
+    // Handle phase-specific logic
+    if (nextPhase === 'scoring') {
+      // Scoring phase requires tricks to be recorded
+      const roundData = this.gameState.getRoundData();
+      if (!roundData.bids || Object.keys(roundData.bids).length === 0) {
+        throw new Error('Cannot transition to scoring without recorded bids');
+      }
+    } else if (nextPhase === 'bidding' && currentPhase === 'scoring') {
+      // Moving from scoring to next round's bidding
+      if (currentRound < 10) {
+        this.gameState.nextRound();
+      } else {
+        // If we're at round 10, move to completion instead
+        this.gameState.setCurrentPhase('completion');
+        this.updateDisplay();
+        return;
+      }
+    }
+
+    this.gameState.setCurrentPhase(nextPhase);
+    this.updateDisplay();
+  }
+
+  /**
+   * Records bids for the current round
+   * @param {object} bids - { playerIndex: bidAmount }
+   */
+  recordBids(bids) {
+    this.gameState.recordBids(bids);
+    this.updateDisplay();
+  }
+
+  /**
+   * Records tricks won for the current round and calculates scores
+   * @param {object} tricks - { playerIndex: tricksWon }
+   */
+  recordTricks(tricks) {
+    this.gameState.calculateRoundScore(tricks);
+    this.updateDisplay();
+  }
+
+  /**
+   * Updates the game display based on current state
+   */
+  updateDisplay() {
+    if (!this.gameContainer) {
+      console.warn('Game container not initialized');
+      return;
+    }
+
+    const state = this.gameState.getState();
+    const currentPhase = state.currentPhase;
+
+    // Clear container
+    this.gameContainer.innerHTML = '';
+
+    // Render appropriate phase UI
+    if (currentPhase === 'setup') {
+      this.phaseRenderer.renderSetup(this.gameContainer, state);
+    } else if (currentPhase === 'bidding') {
+      this.phaseRenderer.renderBidding(this.gameContainer, state);
+    } else if (currentPhase === 'scoring') {
+      this.phaseRenderer.renderScoring(this.gameContainer, state);
+    } else if (currentPhase === 'completion') {
+      this.phaseRenderer.renderCompletion(this.gameContainer, state);
+    }
+  }
+
+  /**
+   * Attaches event listeners for game interactions
+   * Uses event delegation for dynamically created elements
+   */
+  attachEventListeners() {
+    if (!this.gameContainer) {
+      return;
+    }
+
+    // Event delegation: handle dynamically created elements
+    this.gameContainer.addEventListener('click', (event) => {
+      const target = event.target;
+
+      // Start game button
+      if (target.matches('[data-action="start-game"]')) {
+        const playerInputs = this.gameContainer.querySelectorAll('[data-player-name]');
+        const playerNames = Array.from(playerInputs)
+          .map(input => input.value.trim())
+          .filter(name => name.length > 0);
+        
+        if (playerNames.length < 2) {
+          alert('Please enter at least 2 player names');
+          return;
+        }
+        
+        this.startGame(playerNames);
+      }
+
+      // Submit bids button
+      if (target.matches('[data-action="submit-bids"]')) {
+        const bidInputs = this.gameContainer.querySelectorAll('[data-player-bid]');
+        const bids = {};
+        bidInputs.forEach(input => {
+          const playerIndex = input.dataset.playerIndex;
+          const bid = parseInt(input.value) || 0;
+          bids[playerIndex] = bid;
+        });
+        
+        this.recordBids(bids);
+        this.handlePhaseTransition('scoring');
+      }
+
+      // Submit tricks button
+      if (target.matches('[data-action="submit-tricks"]')) {
+        const trickInputs = this.gameContainer.querySelectorAll('[data-player-tricks]');
+        const tricks = {};
+        trickInputs.forEach(input => {
+          const playerIndex = input.dataset.playerIndex;
+          const tricksWon = parseInt(input.value) || 0;
+          tricks[playerIndex] = tricksWon;
+        });
+        
+        this.recordTricks(tricks);
+        if (this.gameState.getCurrentRound() < 10) {
+          this.handlePhaseTransition('bidding');
+        } else {
+          this.handlePhaseTransition('completion');
+        }
+      }
+
+      // Next round button
+      if (target.matches('[data-action="next-round"]')) {
+        if (this.gameState.getCurrentRound() < 10) {
+          this.handlePhaseTransition('bidding');
+        } else {
+          this.handlePhaseTransition('completion');
+        }
+      }
+
+      // Restart game button
+      if (target.matches('[data-action="restart-game"]')) {
+        this.gameState.initialize();
+        this.gameState.setCurrentPhase('setup');
+        this.updateDisplay();
+      }
+    });
+  }
+
+  /**
+   * Gets the current game state
+   * @returns {object} Current game state
+   */
+  getState() {
+    return this.gameState.getState();
+  }
+}
+/**
  * Game Controller
  * Orchestrates game flow by combining gameState and phaseRenderer modules
  */
