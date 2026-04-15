@@ -1,7 +1,6 @@
 /**
- * Game Controller Module
- * Orchestrates game flow by combining gameState and phaseRenderer
- * Manages phase transitions and display updates
+ * Game Controller
+ * Orchestrates game flow by combining gameState and phaseRenderer modules
  */
 
 import { GameState } from './gameState.js';
@@ -11,85 +10,75 @@ export class GameController {
   constructor() {
     this.gameState = new GameState();
     this.phaseRenderer = new PhaseRenderer();
-    this.setupEventListeners();
+    this.appContainer = document.getElementById('app');
+    this.mainContainer = document.getElementById('main-game-container');
+    this.scoreboardBody = document.getElementById('scoreboard-body');
+    this.calculateScoreBtn = document.getElementById('calculate-score-btn');
+    this.phaseTransitionTimeout = null;
   }
 
   /**
-   * Initialize game and start setup phase
+   * Initialize and start the game
    */
   startGame() {
     this.gameState.initializeGame();
+    this.attachEventListeners();
     this.updateDisplay();
   }
 
   /**
-   * Set up all event listeners for game interactions
-   * Uses event delegation for dynamically created elements
+   * Attach event listeners with proper delegation
    */
-  setupEventListeners() {
-    const appMain = document.querySelector('.app-main');
-    
-    if (!appMain) {
-      console.error('Cannot find .app-main element');
-      return;
-    }
-
-    // Event delegation for dynamic elements
-    appMain.addEventListener('click', (e) => {
-      // Add player button
-      if (e.target.closest('.add-player-btn')) {
+  attachEventListeners() {
+    // Event delegation for dynamically created elements
+    this.mainContainer.addEventListener('click', (e) => {
+      // Handle add player button
+      if (e.target.id === 'add-player-btn') {
         this.handleAddPlayer();
       }
-      
-      // Remove player button
-      if (e.target.closest('.remove-player-btn')) {
-        const playerIndex = parseInt(e.target.closest('.remove-player-btn').dataset.playerIndex);
+      // Handle remove player button
+      if (e.target.classList.contains('remove-player-btn')) {
+        const playerIndex = parseInt(e.target.dataset.playerIndex, 10);
         this.handleRemovePlayer(playerIndex);
       }
-      
-      // Submit bid button
-      if (e.target.closest('.submit-bid-btn')) {
-        this.handleSubmitBid();
+      // Handle submit bids button
+      if (e.target.id === 'submit-bids-btn') {
+        this.handleSubmitBids();
       }
-      
-      // Submit tricks button
-      if (e.target.closest('.submit-tricks-btn')) {
+      // Handle submit tricks button
+      if (e.target.id === 'submit-tricks-btn') {
         this.handleSubmitTricks();
       }
-      
-      // Next round button
-      if (e.target.closest('.next-round-btn')) {
+      // Handle next round button
+      if (e.target.id === 'next-round-btn') {
         this.handleNextRound();
       }
-      
-      // Restart game button
-      if (e.target.closest('.restart-game-btn')) {
-        this.handleRestartGame();
+      // Handle start new game button
+      if (e.target.id === 'start-new-game-btn') {
+        this.handleStartNewGame();
       }
     });
 
-    // Original calculate score button if it exists
-    const calculateScoreBtn = document.getElementById('calculate-score-btn');
-    if (calculateScoreBtn) {
-      calculateScoreBtn.addEventListener('click', () => {
+    // Calculate score button (separate listener as per existing HTML)
+    if (this.calculateScoreBtn) {
+      this.calculateScoreBtn.addEventListener('click', () => {
         this.handleCalculateScore();
       });
     }
   }
 
   /**
-   * Handle adding a new player
+   * Handle adding a player
    */
   handleAddPlayer() {
-    const playerInput = document.querySelector('.player-name-input');
-    if (playerInput && playerInput.value.trim()) {
-      this.gameState.addPlayer(playerInput.value.trim());
-      playerInput.value = '';
-      this.updateDisplay();
-      
-      // Check if we should transition to bidding phase
-      this.handlePhaseTransition();
+    const playerName = this.phaseRenderer.getPlayerNameInput();
+    if (!playerName || playerName.trim() === '') {
+      alert('Please enter a player name');
+      return;
     }
+    this.gameState.addPlayer(playerName);
+    this.updateDisplay();
+    this.handlePhaseTransition();
   }
 
   /**
@@ -98,184 +87,208 @@ export class GameController {
   handleRemovePlayer(playerIndex) {
     this.gameState.removePlayer(playerIndex);
     this.updateDisplay();
+    this.handlePhaseTransition();
   }
 
   /**
    * Handle submitting bids
    */
-  handleSubmitBid() {
-    const bidInputs = document.querySelectorAll('.bid-input');
-    const bids = Array.from(bidInputs).map((input, index) => {
-      const value = parseInt(input.value) || 0;
-      return { playerIndex: index, bid: value };
-    });
-
-    let allBidsValid = true;
-    bids.forEach(({ playerIndex, bid }) => {
-      if (!this.gameState.setBid(playerIndex, bid)) {
-        allBidsValid = false;
-      }
-    });
-
-    if (allBidsValid) {
-      this.updateDisplay();
-      // Check if we should transition to tricks phase
-      this.handlePhaseTransition();
+  handleSubmitBids() {
+    const bids = this.phaseRenderer.getBidsFromUI();
+    if (!bids) {
+      alert('All players must enter a bid');
+      return;
     }
+    bids.forEach((bid, index) => {
+      this.gameState.setBid(index, bid);
+    });
+    this.handlePhaseTransition();
   }
 
   /**
    * Handle submitting tricks taken
    */
   handleSubmitTricks() {
-    const trickInputs = document.querySelectorAll('.tricks-input');
-    const tricks = Array.from(trickInputs).map((input, index) => {
-      const value = parseInt(input.value) || 0;
-      return { playerIndex: index, tricks: value };
-    });
-
-    let allTricksValid = true;
-    tricks.forEach(({ playerIndex, tricks }) => {
-      if (!this.gameState.setTricksTaken(playerIndex, tricks)) {
-        allTricksValid = false;
-      }
-    });
-
-    if (allTricksValid) {
-      this.gameState.calculateRoundScores();
-      this.updateDisplay();
-      // Check if we should transition to next round or show completion
-      this.handlePhaseTransition();
+    const tricks = this.phaseRenderer.getTricksFromUI();
+    if (!tricks) {
+      alert('All players must enter tricks taken');
+      return;
     }
+    tricks.forEach((trickCount, index) => {
+      this.gameState.setTricksTaken(index, trickCount);
+    });
+    this.handlePhaseTransition();
   }
 
   /**
-   * Handle advancing to the next round
+   * Handle next round button click
    */
   handleNextRound() {
-    if (this.gameState.advanceRound()) {
-      this.updateDisplay();
-    }
+    this.gameState.advanceRound();
+    this.handlePhaseTransition();
   }
 
   /**
-   * Handle restarting the game
+   * Handle start new game button click
    */
-  handleRestartGame() {
+  handleStartNewGame() {
     this.gameState.initializeGame();
     this.updateDisplay();
   }
 
   /**
-   * Handle calculate score (legacy button)
+   * Handle calculate score button click (legacy)
    */
   handleCalculateScore() {
+    // This is kept for backward compatibility with existing HTML
+    // The main flow uses calculateRoundScores() during phase transitions
     this.gameState.calculateRoundScores();
-    this.updateDisplay();
-  }
-
-  /**
-   * Check current game state and transition phases if needed
-   */
-  handlePhaseTransition() {
-    const currentPhase = this.gameState.getCurrentPhase();
-    const numPlayers = this.gameState.getPlayers().length;
-
-    // Transition from setup to bidding when 2+ players added
-    if (currentPhase === 'setup' && numPlayers >= 2) {
-      this.gameState.transitionToPhase('bidding');
-      this.updateDisplay();
-    }
-    // Transition from bidding to tricks when all bids collected
-    else if (currentPhase === 'bidding' && this.gameState.allBidsCollected()) {
-      this.gameState.transitionToPhase('tricks');
-      this.updateDisplay();
-    }
-    // Transition from tricks to completion/next round when all tricks collected
-    else if (currentPhase === 'tricks' && this.gameState.allTricksCollected()) {
-      // Check if game is complete (after round 10)
-      if (this.gameState.getCurrentRound() >= 10) {
-        this.gameState.transitionToPhase('completion');
-      } else {
-        this.gameState.transitionToPhase('round_complete');
-      }
-      this.updateDisplay();
-    }
-  }
-
-  /**
-   * Update the display based on current game state
-   * Delegates to phaseRenderer to render the appropriate phase
-   */
-  updateDisplay() {
-    const currentPhase = this.gameState.getCurrentPhase();
-    const gameState = this.gameState;
-
-    // Clear previous phase content
-    const appMain = document.querySelector('.app-main');
-    if (appMain) {
-      // Clear phase-specific content (but keep other sections)
-      const existingPhaseContent = appMain.querySelector('[data-phase]');
-      if (existingPhaseContent) {
-        existingPhaseContent.remove();
-      }
-    }
-
-    // Render phase-specific content
-    const phaseContent = this.phaseRenderer.renderPhase(
-      currentPhase,
-      gameState
-    );
-
-    if (appMain && phaseContent) {
-      appMain.insertAdjacentHTML('beforeend', phaseContent);
-    }
-
-    // Update scoreboard if it exists
     this.updateScoreboard();
   }
 
   /**
-   * Update the scoreboard table with current game data
+   * Handle phase transitions based on game state
+   */
+  handlePhaseTransition() {
+    const currentPhase = this.gameState.getCurrentPhase();
+    const playerCount = this.gameState.getPlayers().length;
+
+    // Setup phase: transition to bidding when 2+ players
+    if (currentPhase === 'setup' && playerCount >= 2) {
+      this.gameState.transitionToPhase('bidding');
+      this.updateDisplay();
+      return;
+    }
+
+    // Setup phase: stay in setup if players drop below 2
+    if (currentPhase === 'setup' && playerCount < 2) {
+      this.updateDisplay();
+      return;
+    }
+
+    // Bidding phase: check if all bids collected
+    if (currentPhase === 'bidding' && this.gameState.allBidsCollected()) {
+      this.gameState.transitionToPhase('tricks');
+      this.updateDisplay();
+      return;
+    }
+
+    // Tricks phase: check if all tricks collected
+    if (currentPhase === 'tricks' && this.gameState.allTricksCollected()) {
+      this.gameState.calculateRoundScores();
+      this.gameState.transitionToPhase('scoring');
+      this.updateDisplay();
+      // Auto-advance after 2 seconds
+      this.schedulePhaseTransition();
+      return;
+    }
+
+    // Scoring phase: advance to next round or completion
+    if (currentPhase === 'scoring') {
+      const currentRound = this.gameState.getCurrentRound();
+      if (currentRound >= 10) {
+        // After round 10 is complete, show completion
+        this.gameState.transitionToPhase('completion');
+        this.updateDisplay();
+      } else {
+        // Advance to next round
+        this.gameState.advanceRound();
+        this.gameState.transitionToPhase('bidding');
+        this.updateDisplay();
+      }
+      return;
+    }
+  }
+
+  /**
+   * Schedule automatic phase transition from scoring to next bidding/completion
+   */
+  schedulePhaseTransition() {
+    // Cancel any existing timeout
+    if (this.phaseTransitionTimeout) {
+      clearTimeout(this.phaseTransitionTimeout);
+    }
+    // Schedule transition after 2 seconds
+    this.phaseTransitionTimeout = setTimeout(() => {
+      this.handlePhaseTransition();
+    }, 2000);
+  }
+
+  /**
+   * Update the display based on current phase
+   */
+  updateDisplay() {
+    const currentPhase = this.gameState.getCurrentPhase();
+
+    // Remove previous phase content
+    const oldPhaseElement = this.mainContainer.querySelector('[data-phase]');
+    if (oldPhaseElement) {
+      oldPhaseElement.remove();
+    }
+
+    // Render current phase
+    const phaseContent = this.phaseRenderer.renderPhase(
+      currentPhase,
+      this.gameState
+    );
+
+    // Insert phase content before scoreboard section
+    const scoreboardSection = this.mainContainer.querySelector('.scoreboard-section');
+    if (scoreboardSection) {
+      scoreboardSection.insertAdjacentHTML('beforebegin', phaseContent);
+    }
+
+    // Update scoreboard
+    this.updateScoreboard();
+  }
+
+  /**
+   * Update scoreboard with current game state
    */
   updateScoreboard() {
-    const scoreboardBody = document.getElementById('scoreboard-body');
-    if (!scoreboardBody) return;
-
     const players = this.gameState.getPlayers();
-    
-    // Clear existing rows (but keep them for visual consistency)
-    const playerRows = scoreboardBody.querySelectorAll('.player-row');
-    playerRows.forEach((row, index) => {
+    const rows = this.scoreboardBody.querySelectorAll('.player-row');
+
+    rows.forEach((row, index) => {
       if (index < players.length) {
         const player = players[index];
         const cells = row.querySelectorAll('td');
-        
+
         // Update player name
-        cells[0].querySelector('.player-name').textContent = player.name;
-        
+        const playerNameCell = cells[0];
+        if (playerNameCell) {
+          const playerNameElement = playerNameCell.querySelector('.player-name');
+          if (playerNameElement) {
+            playerNameElement.textContent = player.name;
+          }
+        }
+
         // Update bid
-        const bidInput = cells[1].querySelector('.bid-input');
+        const bidInput = row.querySelector('.bid-input');
         if (bidInput) {
-          bidInput.value = player.bid !== null ? player.bid : '';
-          bidInput.disabled = this.gameState.getCurrentPhase() === 'tricks' ||
-                             this.gameState.getCurrentPhase() === 'round_complete' ||
-                             this.gameState.getCurrentPhase() === 'completion';
+          bidInput.value = player.bid || 0;
         }
-        
+
         // Update tricks
-        const tricksInput = cells[2].querySelector('.tricks-input');
+        const tricksInput = row.querySelector('.tricks-input');
         if (tricksInput) {
-          tricksInput.value = player.tricksTaken !== null ? player.tricksTaken : '';
-          tricksInput.disabled = this.gameState.getCurrentPhase() !== 'tricks';
+          tricksInput.value = player.tricksTaken || 0;
         }
-        
+
         // Update round score
-        cells[3].textContent = player.roundScore || 0;
-        
+        if (cells[3]) {
+          cells[3].textContent = player.roundScore || 0;
+        }
+
         // Update total score
-        cells[4].textContent = player.totalScore || 0;
+        if (cells[4]) {
+          cells[4].textContent = player.totalScore || 0;
+        }
+
+        // Show row
+        row.style.display = '';
       } else {
+        // Hide unused rows
         row.style.display = 'none';
       }
     });

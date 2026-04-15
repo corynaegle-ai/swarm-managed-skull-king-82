@@ -16,9 +16,6 @@ function initializeApp() {
   try {
     const gameController = new GameController();
     gameController.startGame();
-    
-    // Make controller available globally for debugging if needed
-    window.gameController = gameController;
   } catch (error) {
     console.error('Failed to initialize game:', error);
   }
