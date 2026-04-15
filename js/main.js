@@ -5,6 +5,9 @@
 
 import { GameController } from './gameController.js';
 
+// Module-level variable for debugging and extension
+let gameController;
+
 // Initialize game controller when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializeApp);
@@ -14,8 +17,10 @@ if (document.readyState === 'loading') {
 
 function initializeApp() {
   try {
-    const gameController = new GameController();
+    gameController = new GameController();
     gameController.startGame();
+    // Expose for debugging
+    window.gameController = gameController;
   } catch (error) {
     console.error('Failed to initialize game:', error);
   }

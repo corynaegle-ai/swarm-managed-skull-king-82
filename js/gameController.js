@@ -1,4 +1,148 @@
 /**
+ * Game Controller Module
+ * Orchestrates game flow by combining gameState and phaseRenderer modules
+ */
+
+import { GameState } from './gameState.js';
+import { PhaseRenderer } from './phaseRenderer.js';
+
+export class GameController {
+  constructor() {
+    this.gameState = new GameState();
+    this.phaseRenderer = new PhaseRenderer();
+    this.phaseContainer = document.getElementById('phase-container');
+    this.setupEventListeners();
+  }
+
+  /**
+   * Initializes and starts the game
+   */
+  startGame() {
+    this.gameState.initializeGame();
+    this.updateDisplay();
+  }
+
+  /**
+   * Sets up event listeners with proper delegation for dynamically created elements
+   */
+  setupEventListeners() {
+    // Event delegation for dynamically created phase elements
+    this.phaseContainer.addEventListener('click', (event) => {
+      this.handlePhaseContainerClick(event);
+    });
+
+    // Listen for game state changes
+    document.addEventListener('gameStateChanged', () => {
+      this.updateDisplay();
+    });
+  }
+
+  /**
+   * Handles clicks within the phase container using event delegation
+   * @param {Event} event - The click event
+   */
+  handlePhaseContainerClick(event) {
+    const target = event.target;
+
+    // Handle bid buttons
+    if (target.classList.contains('bid-btn')) {
+      const bid = parseInt(target.dataset.bid, 10);
+      this.handleBidAction(bid);
+    }
+
+    // Handle trick winner selection
+    if (target.classList.contains('trick-btn')) {
+      const playerId = target.dataset.playerId;
+      this.handleTrickWinner(playerId);
+    }
+
+    // Handle phase advancement
+    if (target.classList.contains('next-phase-btn')) {
+      this.handlePhaseTransition();
+    }
+  }
+
+  /**
+   * Handles bid actions from players
+   * @param {number} bid - The bid amount
+   */
+  handleBidAction(bid) {
+    const currentPlayer = this.gameState.getCurrentPlayer();
+    if (currentPlayer) {
+      this.gameState.recordBid(currentPlayer.id, bid);
+      this.gameState.advancePlayer();
+      this.updateDisplay();
+    }
+  }
+
+  /**
+   * Handles trick winner selection
+   * @param {string} playerId - The ID of the player who won the trick
+   */
+  handleTrickWinner(playerId) {
+    this.gameState.recordTrickWinner(playerId);
+    this.gameState.advanceToNextTrick();
+    this.updateDisplay();
+  }
+
+  /**
+   * Handles phase transitions in the game flow
+   * Advances game state and updates the display
+   */
+  handlePhaseTransition() {
+    const currentPhase = this.gameState.getCurrentPhase();
+    this.gameState.advancePhase();
+    const nextPhase = this.gameState.getCurrentPhase();
+
+    if (nextPhase === 'ended') {
+      this.handleGameEnd();
+    } else {
+      this.updateDisplay();
+    }
+  }
+
+  /**
+   * Handles end-of-game logic
+   */
+  handleGameEnd() {
+    this.gameState.calculateFinalScores();
+    this.updateDisplay();
+  }
+
+  /**
+   * Updates the display based on current game state
+   * Re-renders the phase container with current game information
+   */
+  updateDisplay() {
+    const currentPhase = this.gameState.getCurrentPhase();
+    const gameData = this.gameState.getGameData();
+
+    // Clear the phase container
+    this.phaseContainer.innerHTML = '';
+
+    // Render appropriate phase UI
+    switch (currentPhase) {
+      case 'setup':
+        this.phaseRenderer.renderSetup(this.phaseContainer, gameData);
+        break;
+      case 'bidding':
+        this.phaseRenderer.renderBidding(this.phaseContainer, gameData);
+        break;
+      case 'playing':
+        this.phaseRenderer.renderPlaying(this.phaseContainer, gameData);
+        break;
+      case 'scoring':
+        this.phaseRenderer.renderScoring(this.phaseContainer, gameData);
+        break;
+      case 'ended':
+        this.phaseRenderer.renderGameEnd(this.phaseContainer, gameData);
+        break;
+      default:
+        console.warn(`Unknown phase: ${currentPhase}`);
+    }
+  }
+}
+/**
  * Game Controller
  * Orchestrates game flow by managing phases and coordinating between gameState and phaseRenderer
  */
