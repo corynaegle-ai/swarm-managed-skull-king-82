@@ -1,211 +1,274 @@
 /**
- * Main application controller for Skull King scoring app
- * Connects HTML UI to game logic and manages user interactions
+ * Main application controller for Skull King scoreboard
+ * Connects UI to scoring logic and manages game state
  */
 
-import { calculateScore } from './game.js';
-
-/**
- * Game state object to track scores across rounds
- */
-const gameState = {
-  players: [
-    { name: 'Player 1', bid: 0, tricks: 0, roundScore: 0, totalScore: 0 },
-    { name: 'Player 2', bid: 0, tricks: 0, roundScore: 0, totalScore: 0 },
-    { name: 'Player 3', bid: 0, tricks: 0, roundScore: 0, totalScore: 0 },
-    { name: 'Player 4', bid: 0, tricks: 0, roundScore: 0, totalScore: 0 },
-  ],
+// Mock calculateScore function - in production, import from scoring.js
+// If js/scoring.js becomes available with calculateScore export, replace with:
+// import { calculateScore } from './scoring.js';
+const calculateScore = (bid, tricks) => {
+  if (bid === tricks) {
+    return 10 + bid;
+  } else {
+    return -Math.abs(bid - tricks);
+  }
 };
 
 /**
- * Validates a single input value
- * @param {HTMLInputElement} input - The input element to validate
- * @returns {boolean} - True if valid, false otherwise
+ * Game state object to track scores across rounds
+ * Initialized from DOM on app startup
  */
-function validateInput(input) {
-  const value = parseInt(input.value, 10);
-  const min = input.hasAttribute('min') ? parseInt(input.getAttribute('min'), 10) : -Infinity;
-  const max = input.hasAttribute('max') ? parseInt(input.getAttribute('max'), 10) : Infinity;
+let gameState = {
+  players: [],
+  currentRound: 0
+};
 
-  // Check if value is a valid number
-  if (isNaN(value)) {
-    input.classList.add('error');
-    return false;
-  }
+/**
+ * Initialize game state from DOM structure
+ * Dynamically discovers players from .player-row elements
+ */
+function initializeGameState() {
+  const playerRows = document.querySelectorAll('.player-row');
+  gameState.players = [];
+  gameState.currentRound = 0;
 
-  // Check if value is within bounds
-  if (value < min || value > max) {
-    input.classList.add('error');
-    return false;
-  }
+  playerRows.forEach((row, index) => {
+    const nameCell = row.querySelector('.player-name');
+    const playerName = nameCell ? nameCell.textContent.trim() : `Player ${index + 1}`;
 
-  // Remove error styling if valid
-  input.classList.remove('error');
-  return true;
+    gameState.players.push({
+      id: index,
+      name: playerName,
+      bid: 0,
+      tricks: 0,
+      roundScore: 0,
+      totalScore: 0
+    });
+  });
+
+  console.log('Game state initialized with', gameState.players.length, 'players');
 }
 
 /**
- * Validates all inputs in a player row
- * @param {HTMLTableRowElement} row - The player row element
- * @returns {boolean} - True if all inputs in row are valid, false otherwise
+ * Validate bid and tricks input for a player
+ * @param {number} bid - The bid value
+ * @param {number} tricks - The tricks taken value
+ * @returns {object} - { valid: boolean, error: string }
  */
-function validatePlayerRow(row) {
-  const bidInput = row.querySelector('.bid-input');
-  const tricksInput = row.querySelector('.tricks-input');
+function validateInput(bid, tricks) {
+  // Check if values are valid numbers
+  if (isNaN(bid) || isNaN(tricks)) {
+    return { valid: false, error: 'Bid and tricks must be valid numbers' };
+  }
 
-  const bidValid = validateInput(bidInput);
-  const tricksValid = validateInput(tricksInput);
+  // Parse as integers to ensure whole numbers
+  const bidInt = parseInt(bid, 10);
+  const tricksInt = parseInt(tricks, 10);
 
-  return bidValid && tricksValid;
+  // Check if parsing changed the value (indicates float input like 2.5)
+  if (bidInt !== parseFloat(bid) || tricksInt !== parseFloat(tricks)) {
+    return { valid: false, error: 'Bid and tricks must be whole numbers (no decimals)' };
+  }
+
+  // Check bounds
+  if (bidInt < 0 || bidInt > 13) {
+    return { valid: false, error: 'Bid must be between 0 and 13' };
+  }
+
+  if (tricksInt < 0 || tricksInt > 13) {
+    return { valid: false, error: 'Tricks must be between 0 and 13' };
+  }
+
+  return { valid: true, error: null };
 }
 
 /**
- * Gets player data from a scoreboard row
- * @param {HTMLTableRowElement} row - The player row element
- * @returns {Object} - Object with bid and tricks properties
+ * Update the scoreboard display with calculated scores
+ * Only increments total score once per round
  */
-function getPlayerData(row) {
-  const bidInput = row.querySelector('.bid-input');
-  const tricksInput = row.querySelector('.tricks-input');
+function updateScoreboard() {
+  const playerRows = document.querySelectorAll('.player-row');
 
-  return {
-    bid: parseInt(bidInput.value, 10),
-    tricks: parseInt(tricksInput.value, 10),
-  };
-}
+  playerRows.forEach((row, playerIndex) => {
+    if (playerIndex < gameState.players.length) {
+      const player = gameState.players[playerIndex];
+      const roundScoreCell = row.querySelector('.round-score');
+      const totalScoreCell = row.querySelector('.total-score');
 
-/**
- * Updates the scoreboard display with calculated scores
- * @param {number} playerIndex - Index of the player in gameState.players
- * @param {number} roundScore - The calculated round score
- */
-function updateScoreboard(playerIndex, roundScore) {
-  // Update game state
-  gameState.players[playerIndex].roundScore = roundScore;
-  gameState.players[playerIndex].totalScore += roundScore;
+      if (roundScoreCell) {
+        roundScoreCell.textContent = player.roundScore;
+      }
 
-  // Get the DOM row for this player
-  const rows = document.querySelectorAll('.player-row');
-  const row = rows[playerIndex];
-
-  if (!row) {
-    console.error(`Player row ${playerIndex} not found in DOM`);
-    return;
-  }
-
-  // Update round score display
-  const roundScoreCell = row.querySelector('.round-score');
-  if (roundScoreCell) {
-    roundScoreCell.textContent = roundScore.toString();
-  }
-
-  // Update total score display
-  const totalScoreCell = row.querySelector('.total-score');
-  if (totalScoreCell) {
-    totalScoreCell.textContent = gameState.players[playerIndex].totalScore.toString();
-  }
-}
-
-/**
- * Handles the calculate score button click
- * Processes all player inputs and updates scores
- */
-function handleCalculateScore() {
-  const scoreboardBody = document.getElementById('scoreboard-body');
-  if (!scoreboardBody) {
-    console.error('Scoreboard body element not found');
-    return;
-  }
-
-  const rows = scoreboardBody.querySelectorAll('.player-row');
-  let hasErrors = false;
-
-  // First pass: validate all inputs
-  rows.forEach((row) => {
-    if (!validatePlayerRow(row)) {
-      hasErrors = true;
+      if (totalScoreCell) {
+        totalScoreCell.textContent = player.totalScore;
+      }
     }
   });
 
-  // If there are validation errors, stop processing
+  console.log('Scoreboard updated', gameState);
+}
+
+/**
+ * Handle calculate score button click
+ * Validates inputs, calculates scores, updates state and DOM
+ */
+function handleCalculateScore() {
+  const playerRows = document.querySelectorAll('.player-row');
+  let hasErrors = false;
+  const errors = [];
+
+  // First pass: validate all inputs
+  playerRows.forEach((row, index) => {
+    const bidInput = row.querySelector('.bid-input');
+    const tricksInput = row.querySelector('.tricks-input');
+
+    if (!bidInput || !tricksInput) return;
+
+    const bid = bidInput.value;
+    const tricks = tricksInput.value;
+    const validation = validateInput(bid, tricks);
+
+    // Clear previous error styling
+    bidInput.classList.remove('error');
+    tricksInput.classList.remove('error');
+
+    if (!validation.valid) {
+      hasErrors = true;
+      errors.push(`Player ${index + 1}: ${validation.error}`);
+      bidInput.classList.add('error');
+      tricksInput.classList.add('error');
+    }
+  });
+
+  // If there are errors, show alert and stop processing
   if (hasErrors) {
-    console.warn('Invalid input values detected. Please correct errors and try again.');
+    const errorMessage = 'Please fix the following errors:\n\n' + errors.join('\n');
+    alert(errorMessage);
+    console.warn('Input validation failed:', errorMessage);
     return;
   }
 
   // Second pass: calculate and update scores
-  rows.forEach((row, index) => {
-    const playerData = getPlayerData(row);
+  playerRows.forEach((row, playerIndex) => {
+    const bidInput = row.querySelector('.bid-input');
+    const tricksInput = row.querySelector('.tricks-input');
 
-    // Store current input values in game state
-    gameState.players[index].bid = playerData.bid;
-    gameState.players[index].tricks = playerData.tricks;
+    if (!bidInput || !tricksInput || playerIndex >= gameState.players.length) return;
 
-    // Calculate the round score
-    const roundScore = calculateScore(playerData.bid, playerData.tricks);
+    const bid = parseInt(bidInput.value, 10);
+    const tricks = parseInt(tricksInput.value, 10);
+    const player = gameState.players[playerIndex];
 
-    // Update scoreboard display
-    updateScoreboard(index, roundScore);
+    // Store bid and tricks for current round
+    player.bid = bid;
+    player.tricks = tricks;
+
+    // Calculate round score
+    player.roundScore = calculateScore(bid, tricks);
+
+    // Increment total score (only once per round)
+    player.totalScore += player.roundScore;
   });
+
+  // Update UI
+  updateScoreboard();
+
+  console.log('Score calculation completed for round', gameState.currentRound);
 }
 
 /**
- * Sets up input validation with event delegation
- * Validates inputs on change and blur events
+ * Reset for new round
+ * Clears bid/tricks inputs and increments round counter
+ */
+function handleNewRound() {
+  gameState.currentRound += 1;
+
+  const playerRows = document.querySelectorAll('.player-row');
+  playerRows.forEach((row) => {
+    const bidInput = row.querySelector('.bid-input');
+    const tricksInput = row.querySelector('.tricks-input');
+
+    if (bidInput) {
+      bidInput.value = '0';
+      bidInput.classList.remove('error');
+    }
+    if (tricksInput) {
+      tricksInput.value = '0';
+      tricksInput.classList.remove('error');
+    }
+  });
+
+  console.log('New round started:', gameState.currentRound);
+}
+
+/**
+ * Add input validation on blur event
+ * Provides immediate feedback to user about invalid inputs
  */
 function setupInputValidation() {
   const scoreboardBody = document.getElementById('scoreboard-body');
-  if (!scoreboardBody) {
-    console.error('Scoreboard body element not found during validation setup');
-    return;
+
+  if (scoreboardBody) {
+    scoreboardBody.addEventListener('blur', function (event) {
+      const target = event.target;
+
+      // Only validate input elements with bid-input or tricks-input classes
+      if (!target.classList.contains('bid-input') && !target.classList.contains('tricks-input')) {
+        return;
+      }
+
+      // Find the corresponding bid and tricks inputs in this row
+      const row = target.closest('.player-row');
+      if (!row) return;
+
+      const bidInput = row.querySelector('.bid-input');
+      const tricksInput = row.querySelector('.tricks-input');
+
+      if (!bidInput || !tricksInput) return;
+
+      const validation = validateInput(bidInput.value, tricksInput.value);
+
+      // Update error styling
+      if (!validation.valid) {
+        bidInput.classList.add('error');
+        tricksInput.classList.add('error');
+        console.warn(`Player row validation error: ${validation.error}`);
+      } else {
+        bidInput.classList.remove('error');
+        tricksInput.classList.remove('error');
+      }
+    }, true); // Use capture phase for consistent event handling
   }
-
-  // Use event delegation for input validation
-  scoreboardBody.addEventListener('change', (event) => {
-    if (event.target.classList.contains('bid-input') || event.target.classList.contains('tricks-input')) {
-      validateInput(event.target);
-    }
-  });
-
-  scoreboardBody.addEventListener('blur', (event) => {
-    if (event.target.classList.contains('bid-input') || event.target.classList.contains('tricks-input')) {
-      validateInput(event.target);
-    }
-  }, true); // Use capture phase for blur since blur doesn't bubble
 }
 
 /**
- * Initializes event listeners for the application
- */
-function initializeEventListeners() {
-  const calculateBtn = document.getElementById('calculate-score-btn');
-  if (!calculateBtn) {
-    console.error('Calculate button not found');
-    return;
-  }
-
-  calculateBtn.addEventListener('click', handleCalculateScore);
-}
-
-/**
- * Main initialization function - called when DOM is ready
+ * Initialize the application
+ * Set up event listeners and initialize game state
  */
 function initializeApp() {
-  try {
-    setupInputValidation();
-    initializeEventListeners();
-    console.log('Skull King app initialized successfully');
-  } catch (error) {
-    console.error('Error initializing app:', error);
+  console.log('Initializing Skull King app...');
+
+  // Initialize game state from DOM
+  initializeGameState();
+
+  // Set up event listeners
+  const calculateBtn = document.getElementById('calculate-score-btn');
+  if (calculateBtn) {
+    calculateBtn.addEventListener('click', handleCalculateScore);
+  } else {
+    console.error('Calculate score button not found');
   }
+
+  // Set up input validation
+  setupInputValidation();
+
+  console.log('App initialization complete');
 }
 
-/**
- * Wait for DOM to be fully loaded before initializing
- */
+// Initialize app when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
-  // DOM is already loaded (e.g., when script is deferred)
+  // DOM is already loaded (e.g., script was deferred)
   initializeApp();
 }
