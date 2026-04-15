@@ -311,3 +311,68 @@
     font-size: 0.85rem;
   }
 }
+
+/* Print Media Query for Print Layout Support */
+@media print {
+  .score-display-container {
+    width: 100%;
+    page-break-inside: avoid;
+  }
+
+  .score-table {
+    background-color: white;
+    color: #000;
+    border: 1px solid #000;
+    box-shadow: none;
+  }
+
+  .score-header-row {
+    background: #f0f0f0 !important;
+    color: #000;
+  }
+
+  .score-header-cell {
+    color: #000;
+    border-bottom: 1px solid #000;
+    background-color: #f0f0f0 !important;
+  }
+
+  .score-row {
+    page-break-inside: avoid;
+    border-bottom: 1px solid #ccc;
+  }
+
+  .score-cell {
+    color: #000;
+    background-color: white !important;
+    border-right: 1px solid #ccc;
+  }
+
+  .score-cell.player-name-cell {
+    color: #000;
+    background-color: #f9f9f9 !important;
+  }
+
+  .score-cell.round-score-cell,
+  .score-cell.total-cell {
+    background-color: white !important;
+  }
+
+  .score-display-announcement {
+    background: white;
+    border: 1px solid #000;
+    color: #000;
+    page-break-inside: avoid;
+  }
+
+  .announcement-content h2,
+  .announcement-content .winner-name,
+  .announcement-content .winner-score {
+    color: #000;
+  }
+
+  .score-row.winner-row {
+    background-color: #f0f0f0 !important;
+    border: 1px solid #000;
+  }
+}
