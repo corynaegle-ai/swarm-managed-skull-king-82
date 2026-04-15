@@ -1,4 +1,219 @@
 /**
+ * Game Controller
+ * Orchestrates game flow by combining gameState and phaseRenderer modules
+ */
+
+import { GameState } from './gameState.js';
+import { PhaseRenderer } from './phaseRenderer.js';
+
+export class GameController {
+  constructor() {
+    this.gameState = new GameState();
+    this.phaseRenderer = new PhaseRenderer();
+    this.gameContainer = null;
+  }
+
+  /**
+   * Initializes the game controller and sets up event listeners
+   * @param {HTMLElement} container - The main game container element
+   */
+  startGame(container) {
+    this.gameContainer = container || document.getElementById('game-container');
+    
+    if (!this.gameContainer) {
+      throw new Error('Game container not found');
+    }
+    
+    // Initialize game state
+    this.gameState.initialize();
+    this.gameState.setCurrentPhase('setup');
+    
+    // Render initial phase
+    this.updateDisplay();
+    
+    // Set up event delegation for dynamically created elements
+    this.setupEventListeners();
+  }
+
+  /**
+   * Sets up event listeners with proper delegation for dynamic content
+   */
+  setupEventListeners() {
+    if (!this.gameContainer) return;
+    
+    // Event delegation for player addition
+    this.gameContainer.addEventListener('click', (event) => {
+      if (event.target.matches('[data-action="add-player"]')) {
+        this.handleAddPlayer(event);
+      } else if (event.target.matches('[data-action="start-round"]')) {
+        this.handleStartRound(event);
+      } else if (event.target.matches('[data-action="submit-bid"]')) {
+        this.handleSubmitBid(event);
+      } else if (event.target.matches('[data-action="submit-tricks"]')) {
+        this.handleSubmitTricks(event);
+      } else if (event.target.matches('[data-action="next-round"]')) {
+        this.handleNextRound(event);
+      }
+    });
+  }
+
+  /**
+   * Handles phase transitions in the game
+   * @param {string} nextPhase - The phase to transition to
+   */
+  handlePhaseTransition(nextPhase) {
+    const currentPhase = this.gameState.getCurrentPhase();
+    const validTransitions = {
+      'setup': ['bidding'],
+      'bidding': ['scoring'],
+      'scoring': ['bidding', 'completion'],
+      'completion': []
+    };
+    
+    if (!validTransitions[currentPhase] || !validTransitions[currentPhase].includes(nextPhase)) {
+      throw new Error(`Invalid transition from ${currentPhase} to ${nextPhase}`);
+    }
+    
+    this.gameState.setCurrentPhase(nextPhase);
+    this.updateDisplay();
+  }
+
+  /**
+   * Updates the display to reflect current game state
+   */
+  updateDisplay() {
+    const currentPhase = this.gameState.getCurrentPhase();
+    const gameState = this.gameState.getState();
+    
+    // Render the appropriate phase UI
+    const phaseHTML = this.phaseRenderer.render(currentPhase, gameState);
+    this.gameContainer.innerHTML = phaseHTML;
+    
+    // Re-attach event listeners after DOM update
+    this.setupEventListeners();
+  }
+
+  /**
+   * Handles adding a player in setup phase
+   * @param {Event} event - Click event
+   */
+  handleAddPlayer(event) {
+    if (this.gameState.getCurrentPhase() !== 'setup') return;
+    
+    const playerNameInput = this.gameContainer.querySelector('[data-input="player-name"]');
+    const playerName = playerNameInput?.value.trim();
+    
+    if (!playerName) {
+      alert('Please enter a player name');
+      return;
+    }
+    
+    try {
+      this.gameState.addPlayer(playerName);
+      playerNameInput.value = '';
+      this.updateDisplay();
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+
+  /**
+   * Handles starting a new round
+   * @param {Event} event - Click event
+   */
+  handleStartRound(event) {
+    const playerCount = this.gameState.getPlayerCount();
+    
+    if (playerCount < 2) {
+      alert('At least 2 players are required to start the game');
+      return;
+    }
+    
+    this.handlePhaseTransition('bidding');
+  }
+
+  /**
+   * Handles submitting bids in the bidding phase
+   * @param {Event} event - Click event
+   */
+  handleSubmitBid(event) {
+    if (this.gameState.getCurrentPhase() !== 'bidding') return;
+    
+    const bids = {};
+    const bidInputs = this.gameContainer.querySelectorAll('[data-input="bid"]');
+    let allBidsValid = true;
+    
+    bidInputs.forEach((input, index) => {
+      const bid = parseInt(input.value);
+      if (isNaN(bid) || bid < 0) {
+        allBidsValid = false;
+        alert(`Invalid bid for player ${index + 1}`);
+        return;
+      }
+      bids[index] = bid;
+    });
+    
+    if (!allBidsValid) return;
+    
+    try {
+      this.gameState.recordBids(bids);
+      this.handlePhaseTransition('scoring');
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+
+  /**
+   * Handles submitting tricks in the scoring phase
+   * @param {Event} event - Click event
+   */
+  handleSubmitTricks(event) {
+    if (this.gameState.getCurrentPhase() !== 'scoring') return;
+    
+    const tricks = {};
+    const trickInputs = this.gameContainer.querySelectorAll('[data-input="tricks"]');
+    let allTricksValid = true;
+    
+    trickInputs.forEach((input, index) => {
+      const trick = parseInt(input.value);
+      if (isNaN(trick) || trick < 0) {
+        allTricksValid = false;
+        alert(`Invalid tricks value for player ${index + 1}`);
+        return;
+      }
+      tricks[index] = trick;
+    });
+    
+    if (!allTricksValid) return;
+    
+    try {
+      this.gameState.calculateRoundScore(tricks);
+      
+      // Check if game is complete (round 10)
+      if (this.gameState.getCurrentRound() >= 10) {
+        this.handlePhaseTransition('completion');
+      } else {
+        this.handleNextRound();
+      }
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+
+  /**
+   * Handles advancing to the next round
+   * @param {Event} event - Click event (optional)
+   */
+  handleNextRound(event) {
+    try {
+      this.gameState.nextRound();
+      this.handlePhaseTransition('bidding');
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+}
+/**
  * Game Flow Controller
  * Orchestrates game flow by combining gameState and phaseRenderer modules
  */
